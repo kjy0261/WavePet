@@ -31,8 +31,8 @@ html, body {
 #pet {
   position: relative;
   height: 68%;
-  align-self: flex-end;
-  transform-origin: 50% 100%; /* 발을 축으로 */
+  align-self: center; /* 캐릭터 세로 중심을 파형 중심선(캔버스 가운데)에 맞춤 */
+  transform-origin: 50% 100%; /* 흔들림은 발을 축으로 */
 }
 
 #pet-sprite {
