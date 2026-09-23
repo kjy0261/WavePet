@@ -3,18 +3,30 @@ const waveCanvas = document.getElementById('wave');
 const petEl = document.getElementById('pet');
 const sprite = document.getElementById('pet-sprite');
 
-const BAR_COUNT = 56;
+const BAR_COUNT = 40;
 const FRAME_INTERVAL_MS = 1000 / 30; // 켜 두는 위젯이라 30fps로 제한
 
 const visualizer = Visualizer.create(waveCanvas);
 const spectrum = Spectrum.create(BAR_COUNT);
 const beatDetector = BeatDetector.create();
 const pet = Pet.create(petEl, sprite);
-const nowPlaying = NowPlaying.create(
-  document.getElementById('now-playing'),
-  document.getElementById('now-playing-text')
+const $ = (id) => document.getElementById(id);
+const player = Player.create(
+  {
+    title: $('title'),
+    titleText: $('title-text'),
+    artist: $('artist'),
+    timeNow: $('time-now'),
+    timeTotal: $('time-total'),
+    barFill: $('bar-fill'),
+    prev: $('prev'),
+    toggle: $('toggle'),
+    next: $('next'),
+  },
+  { onCommand: (cmd) => window.petAPI.mediaCommand(cmd) }
 );
-window.petAPI.onNowPlaying((info) => nowPlaying.show(info));
+window.petAPI.onNowPlaying((info) => player.show(info));
+$('more').addEventListener('click', () => window.petAPI.showContextMenu());
 const audio = AudioInput.create({
   onStatus: (status) => console.log('[wavepet] audio:', status),
   restartHelper: () => window.petAPI.restartAudioHelper(),
@@ -49,6 +61,7 @@ let lastScreenY = 0;
 
 stage.addEventListener('pointerdown', (event) => {
   if (event.button !== 0) return; // 왼쪽 버튼만. 우클릭은 메뉴
+  if (event.target.closest('button')) return; // 버튼 누를 때는 창을 끌지 않음
   dragPointerId = event.pointerId;
   lastScreenX = event.screenX;
   lastScreenY = event.screenY;

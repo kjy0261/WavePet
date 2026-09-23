@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('petAPI', {
   onPcm: (callback) => ipcRenderer.on('audio:pcm', (_event, bytes) => callback(bytes)),
   restartAudioHelper: () => ipcRenderer.send('audio:restart-helper'),
 
-  // 지금 재생 중인 곡 {playing, title, artist, app}
+  // 지금 재생 중인 곡 {has, playing, title, artist, app, position, duration}
   onNowPlaying: (callback) => ipcRenderer.on('media:now-playing', (_event, info) => callback(info)),
+  mediaCommand: (cmd) => ipcRenderer.send('media:command', cmd),
 });

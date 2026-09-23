@@ -1,14 +1,17 @@
-//! WavePet 미디어 정보 헬퍼: Windows 미디어 세션(SMTC, 볼륨 키를 누르면 뜨는 미디어 팝업과
-//! 같은 정보)에서 지금 재생 중인 곡의 제목/아티스트를 읽어 표준 출력으로 알린다.
-//! 크롬/엣지의 유튜브, 스포티파이 등 SMTC에 정보를 올리는 앱이면 읽을 수 있다.
+//! WavePet 미디어 헬퍼: Windows 미디어 세션(SMTC, 볼륨 키를 누르면 뜨는 미디어 팝업과
+//! 같은 정보)에서 곡 제목/아티스트/재생 위치를 읽어 알리고, 재생 조작 명령을 받는다.
+//! 크롬/엣지의 유튜브, 스포티파이 등 SMTC에 정보를 올리는 앱이면 동작한다.
 //!
-//! - stdout: 재생 정보가 바뀔 때마다 JSON 한 줄
-//!   {"playing":true,"title":"...","artist":"...","app":"..."} / {"playing":false}
-//! - 1초마다 확인한다. 여러 앱이 있으면 "재생 중"인 세션을 우선한다.
-//! - stdin이 닫히면(부모 앱 종료) 스스로 끝난다.
+//! - stdout: 정보가 바뀔 때마다 JSON 한 줄
+//!   {"has":true,"playing":true,"title":"...","artist":"...","app":"...",
+//!    "position":83.2,"duration":256.0}      (초 단위, 길이를 모르면 duration 0)
+//!   {"has":false}                            (조작할 세션 없음)
+//! - stdin: 명령 한 줄씩 "toggle" | "next" | "prev". stdin이 닫히면(부모 앱 종료) 끝난다.
+//! - 세션 고르기: "재생 중"인 세션을 우선, 없으면 Windows가 고른 현재 세션(일시정지 포함).
 
-use std::io::{self, Read, Write};
-use std::time::Duration;
+use std::io::{self, BufRead, Write};
+use std::sync::mpsc;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde_json::json;
 use windows::Media::Control::{
@@ -17,7 +20,9 @@ use windows::Media::Control::{
     GlobalSystemMediaTransportControlsSessionPlaybackStatus as Status,
 };
 
-const POLL_INTERVAL: Duration = Duration::from_secs(1);
+const POLL_INTERVAL: Duration = Duration::from_millis(1000);
+const TICKS_PER_SEC: f64 = 10_000_000.0; // WinRT 시간 단위 100ns
+const UNIX_EPOCH_AS_WINRT_TICKS: i64 = 116_444_736_000_000_000; // 1601-01-01 기준
 
 fn is_playing(session: &Session) -> bool {
     session
@@ -27,37 +32,98 @@ fn is_playing(session: &Session) -> bool {
         .unwrap_or(false)
 }
 
-/// 재생 중인 세션(없으면 None)의 정보를 JSON으로
-fn now_playing(manager: &Manager) -> serde_json::Value {
+fn pick_session(manager: &Manager) -> Option<Session> {
     let playing = manager.GetSessions().ok().and_then(|sessions| {
         (0..sessions.Size().unwrap_or(0))
             .filter_map(|i| sessions.GetAt(i).ok())
             .find(is_playing)
     });
-    let Some(session) = playing else {
-        return json!({ "playing": false });
+    playing.or_else(|| manager.GetCurrentSession().ok())
+}
+
+fn now_winrt_ticks() -> i64 {
+    let since_unix = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
+    UNIX_EPOCH_AS_WINRT_TICKS + (since_unix.as_nanos() / 100) as i64
+}
+
+/// (현재 위치, 전체 길이) 초. 앱이 위치를 마지막으로 알려 준 뒤 흐른 시간을 더해 보정한다.
+fn timeline(session: &Session, playing: bool) -> (f64, f64) {
+    let Ok(t) = session.GetTimelineProperties() else {
+        return (0.0, 0.0);
     };
-    let props = session.TryGetMediaPropertiesAsync().and_then(|op| op.join());
-    let (title, artist) = match props {
+    let start = t.StartTime().map(|v| v.Duration).unwrap_or(0);
+    let end = t.EndTime().map(|v| v.Duration).unwrap_or(0);
+    let mut pos = t.Position().map(|v| v.Duration).unwrap_or(0) - start;
+    if playing {
+        if let Ok(updated) = t.LastUpdatedTime() {
+            if updated.UniversalTime > 0 {
+                pos += (now_winrt_ticks() - updated.UniversalTime).max(0);
+            }
+        }
+    }
+    let duration = (end - start).max(0);
+    if duration > 0 {
+        pos = pos.clamp(0, duration);
+    }
+    (pos.max(0) as f64 / TICKS_PER_SEC, duration as f64 / TICKS_PER_SEC)
+}
+
+fn describe(session: Option<&Session>) -> serde_json::Value {
+    let Some(session) = session else {
+        return json!({ "has": false });
+    };
+    let (title, artist) = match session.TryGetMediaPropertiesAsync().and_then(|op| op.join()) {
         Ok(p) => (
             p.Title().map(|s| s.to_string()).unwrap_or_default(),
             p.Artist().map(|s| s.to_string()).unwrap_or_default(),
         ),
         Err(_) => (String::new(), String::new()),
     };
-    let app = session.SourceAppUserModelId().map(|s| s.to_string()).unwrap_or_default();
     if title.is_empty() {
-        return json!({ "playing": false });
+        return json!({ "has": false });
     }
-    json!({ "playing": true, "title": title, "artist": artist, "app": app })
+    let playing = is_playing(session);
+    let (position, duration) = timeline(session, playing);
+    let app = session.SourceAppUserModelId().map(|s| s.to_string()).unwrap_or_default();
+    json!({
+        "has": true,
+        "playing": playing,
+        "title": title,
+        "artist": artist,
+        "app": app,
+        // 소수 첫째 자리까지만: 매번 미세하게 달라져 줄이 쏟아지지 않게
+        "position": (position * 10.0).round() / 10.0,
+        "duration": (duration * 10.0).round() / 10.0,
+    })
+}
+
+fn run_command(session: Option<&Session>, cmd: &str) {
+    let Some(session) = session else { return };
+    let result = match cmd {
+        "toggle" => session.TryTogglePlayPauseAsync(),
+        "next" => session.TrySkipNextAsync(),
+        "prev" => session.TrySkipPreviousAsync(),
+        _ => return,
+    };
+    if let Err(err) = result.and_then(|op| op.join()) {
+        eprintln!("error {cmd}: {err}");
+    }
 }
 
 fn main() {
-    // 부모 앱이 죽으면 stdin이 닫힌다
-    std::thread::spawn(|| {
-        let mut buf = [0u8; 64];
-        let mut stdin = io::stdin();
-        while matches!(stdin.read(&mut buf), Ok(n) if n > 0) {}
+    // stdin: 명령 줄. 닫히면(부모 앱 종료) 끝낸다.
+    let (tx, rx) = mpsc::channel::<String>();
+    std::thread::spawn(move || {
+        for line in io::stdin().lock().lines() {
+            match line {
+                Ok(cmd) => {
+                    if tx.send(cmd.trim().to_string()).is_err() {
+                        break;
+                    }
+                }
+                Err(_) => break,
+            }
+        }
         std::process::exit(0);
     });
 
@@ -71,7 +137,8 @@ fn main() {
 
     let mut last = String::new();
     loop {
-        let line = now_playing(&manager).to_string();
+        let session = pick_session(&manager);
+        let line = describe(session.as_ref()).to_string();
         if line != last {
             let mut out = io::stdout();
             if writeln!(out, "{line}").and_then(|_| out.flush()).is_err() {
@@ -79,6 +146,11 @@ fn main() {
             }
             last = line;
         }
-        std::thread::sleep(POLL_INTERVAL);
+
+        // 명령이 오면 바로 실행하고 곧장 상태를 다시 알린다
+        if let Ok(cmd) = rx.recv_timeout(POLL_INTERVAL) {
+            run_command(session.as_ref(), &cmd);
+            std::thread::sleep(Duration::from_millis(150)); // 앱이 상태를 반영할 시간
+        }
     }
 }

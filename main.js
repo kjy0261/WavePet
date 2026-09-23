@@ -3,9 +3,9 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 
-// 왼쪽 파형 + 오른쪽 펫이 들어가는 가로형 위젯 크기
-const WINDOW_WIDTH = 500;
-const WINDOW_HEIGHT = 170;
+// 음악 플레이어 카드 크기 (제목/파형/캐릭터 + 진행 바 + 버튼)
+const WINDOW_WIDTH = 360;
+const WINDOW_HEIGHT = 176;
 
 const petIconPath = path.join(__dirname, 'assets', 'pet', 'idle.png');
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
@@ -156,7 +156,7 @@ const MEDIA_HELPER_MAX_RESTARTS = 3;
 
 let mediaHelper = null;
 let mediaHelperRestarts = 0;
-let nowPlaying = { playing: false };
+let nowPlaying = { has: false };
 
 function startMediaHelper() {
   if (!mediaHelperAvailable || mediaHelper) return;
@@ -186,12 +186,18 @@ function startMediaHelper() {
   child.on('exit', () => {
     if (mediaHelper !== child) return; // 일부러 멈춘 경우
     mediaHelper = null;
-    nowPlaying = { playing: false };
+    nowPlaying = { has: false };
     sendToRenderer('media:now-playing', nowPlaying);
     // 제목 표시는 부가 기능이라 몇 번만 다시 시도하고 포기
     if (++mediaHelperRestarts <= MEDIA_HELPER_MAX_RESTARTS) setTimeout(startMediaHelper, 3000);
   });
 }
+
+// 카드의 이전/재생·일시정지/다음 버튼
+ipcMain.on('media:command', (event, cmd) => {
+  if (!mediaHelper || !['prev', 'toggle', 'next'].includes(cmd)) return;
+  mediaHelper.stdin.write(`${cmd}\n`);
+});
 
 function stopMediaHelper() {
   if (!mediaHelper) return;

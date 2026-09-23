@@ -8,20 +8,46 @@
 </head>
 <body>
   <div id="stage">
-    <div id="row">
-      <canvas id="wave"></canvas>
+    <div id="top">
+      <div id="info">
+        <div id="title-row">
+          <div id="title" class="marquee"><span id="title-text">재생 중인 음악 없음</span></div>
+          <button id="more" class="icon-button" title="메뉴" aria-label="메뉴">
+            <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+          </button>
+        </div>
+        <div id="artist"></div>
+        <canvas id="wave"></canvas>
+      </div>
       <div id="pet">
         <img id="pet-sprite" src="../assets/pet/idle.png" alt="WavePet" draggable="false" />
       </div>
     </div>
-    <div id="now-playing" hidden><span id="now-playing-text"></span></div>
+
+    <div id="progress">
+      <div id="times"><span id="time-now">0:00</span><span id="time-total">0:00</span></div>
+      <div id="bar"><div id="bar-fill"></div></div>
+    </div>
+
+    <div id="controls">
+      <button id="prev" class="icon-button" title="이전" aria-label="이전">
+        <svg viewBox="0 0 24 24"><path d="M11 6v12L3 12zM20 6v12l-8-6z" /></svg>
+      </button>
+      <button id="toggle" class="icon-button big" title="재생/일시정지" aria-label="재생/일시정지">
+        <svg class="icon-play" viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z" /></svg>
+        <svg class="icon-pause" viewBox="0 0 24 24"><rect x="6" y="4" width="4.5" height="16" rx="1.2" /><rect x="13.5" y="4" width="4.5" height="16" rx="1.2" /></svg>
+      </button>
+      <button id="next" class="icon-button" title="다음" aria-label="다음">
+        <svg viewBox="0 0 24 24"><path d="M13 6v12l8-6zM4 6v12l8-6z" /></svg>
+      </button>
+    </div>
   </div>
   <script src="audio.js"></script>
   <script src="spectrum.js"></script>
   <script src="visualizer.js"></script>
   <script src="beat.js"></script>
   <script src="pet.js"></script>
-  <script src="now-playing.js"></script>
+  <script src="player.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>
