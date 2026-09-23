@@ -1,0 +1,16 @@
+{
+  "name": "wavepet",
+  "version": "0.1.0",
+  "description": "Desktop widget where a pet listens along to whatever music is playing, next to a live audio waveform",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "audio-test": "electron audio-test/main.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^31.0.0"
+  }
+}
