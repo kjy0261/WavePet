@@ -1,7 +1,7 @@
 // 캐릭터 상태와 연출
 //  - idle(idle.png): 가만히
 //  - listening(listen.png): 좌우로 천천히 흔들림 (#pet.listening).
-//    박자마다 통통 튀고, 몇 박자에 한 번 머리 위로 ♪가 떠오름
+//    몇 박자에 한 번 머리 위로 ♪가 떠오름
 //
 // 상태가 자주 왔다 갔다 하지 않도록 전환 기준을 둔다.
 //  - idle → listening: 소리(loudness > LISTEN_ON)가 LISTEN_AFTER_MS 동안 끊김 없이 이어질 때
@@ -43,13 +43,6 @@ const Pet = (() => {
       if (spriteEl.getAttribute('src') !== src) spriteEl.setAttribute('src', src);
     }
 
-    function bounce() {
-      // 애니메이션이 끝나기 전에 다음 박자가 와도 처음부터 다시 재생
-      spriteEl.classList.remove('bounce');
-      void spriteEl.offsetWidth;
-      spriteEl.classList.add('bounce');
-    }
-
     function spawnNote() {
       const note = document.createElement('span');
       note.className = 'note';
@@ -78,7 +71,6 @@ const Pet = (() => {
       }
 
       if (beat && listening) {
-        bounce();
         beatCount++;
         if (beatCount % NOTE_EVERY_BEATS === 0) spawnNote();
       }
