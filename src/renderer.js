@@ -8,9 +8,11 @@ const visualizer = Visualizer.create(waveCanvas);
 const spectrum = Spectrum.create(BAR_COUNT);
 const audio = AudioInput.create({
   onStatus: (status) => console.log('[wavepet] audio:', status),
+  restartHelper: () => window.petAPI.restartAudioHelper(),
 });
-audio.start();
-
+window.petAPI.getAudioSource().then((source) => audio.start(source));
+window.petAPI.onAudioSource((source) => audio.setSource(source));
+window.petAPI.onPcm((bytes) => audio.pushPcm(bytes));
 window.petAPI.onReconnectAudio(() => audio.reconnect());
 
 // 창이 숨겨지면 requestAnimationFrame이 멈추므로 별도 정지 처리는 필요 없다.

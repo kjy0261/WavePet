@@ -1,14 +1,149 @@
 const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, desktopCapturer } = require('electron');
 const path = require('path');
+const fs = require('fs');
+const { spawn } = require('child_process');
 
 // 왼쪽 파형 + 오른쪽 펫이 들어가는 가로형 위젯 크기
 const WINDOW_WIDTH = 460;
 const WINDOW_HEIGHT = 170;
 
 const petIconPath = path.join(__dirname, 'assets', 'pet', 'idle.png');
+const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+
+// 소리 가져오는 방식
+//  - 'all': 시스템 소리 전체 (getDisplayMedia 루프백)
+//  - 'exclude': 특정 프로그램(Discord) 소리만 빼고 (native/loopback 헬퍼, Windows 11)
+const EXCLUDE_EXE = 'Discord.exe';
+const helperPath = path
+  .join(__dirname, 'native', 'bin', 'win32-x64', 'wavepet-loopback.exe')
+  .replace('app.asar', 'app.asar.unpacked');
+const helperAvailable = process.platform === 'win32' && process.arch === 'x64' && fs.existsSync(helperPath);
 
 let mainWindow = null;
 let tray = null;
+let settings = loadSettings();
+
+function loadSettings() {
+  try {
+    return { audioSource: 'exclude', ...JSON.parse(fs.readFileSync(settingsPath, 'utf8')) };
+  } catch (err) {
+    return { audioSource: 'exclude' };
+  }
+}
+
+function saveSettings() {
+  fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+}
+
+function sendToRenderer(channel, ...args) {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, ...args);
+}
+
+// ---- 오디오 헬퍼 (Discord 제외 캡처) ----
+
+const HELPER_MAX_ERRORS = 3; // 이 시간 안에 이만큼 실패하면 이번 실행에서는 헬퍼를 포기
+const HELPER_ERROR_WINDOW_MS = 15000;
+
+let helper = null;
+let helperStatus = '';
+let helperErrorTimes = [];
+let helperDisabled = false; // 반복 실패로 포기한 상태
+let helperRestartTimer = null;
+
+// 실제로 쓰는 방식: 설정이 exclude여도 헬퍼를 못 쓰면 all
+function effectiveAudioSource() {
+  return settings.audioSource === 'exclude' && helperAvailable && !helperDisabled ? 'exclude' : 'all';
+}
+
+function recordHelperError(reason) {
+  console.warn('[wavepet] 오디오 헬퍼 오류:', reason);
+  const now = Date.now();
+  helperErrorTimes = helperErrorTimes.filter((t) => now - t < HELPER_ERROR_WINDOW_MS);
+  helperErrorTimes.push(now);
+  if (helperErrorTimes.length >= HELPER_MAX_ERRORS && !helperDisabled) {
+    helperDisabled = true;
+    helperStatus = `사용 불가: ${reason}`;
+    stopHelper();
+    applyAudioSource();
+    return true;
+  }
+  return false;
+}
+
+function startHelper() {
+  if (helper) return;
+  helperStatus = '시작 중';
+  const child = spawn(helperPath, ['--exclude', EXCLUDE_EXE], { stdio: 'pipe', windowsHide: true });
+  helper = child;
+
+  // stdout: f32 PCM. 조각 경계가 4바이트에 안 맞을 수 있어 남는 바이트를 이어 붙인다.
+  let leftover = Buffer.alloc(0);
+  child.stdout.on('data', (data) => {
+    const buf = leftover.length ? Buffer.concat([leftover, data]) : data;
+    const usable = buf.length - (buf.length % 4);
+    leftover = buf.subarray(usable);
+    if (usable > 0) sendToRenderer('audio:pcm', buf.subarray(0, usable));
+  });
+
+  // stderr: 상태 한 줄씩
+  let errText = '';
+  child.stderr.setEncoding('utf8');
+  child.stderr.on('data', (text) => {
+    errText += text;
+    const lines = errText.split(/\r?\n/);
+    errText = lines.pop();
+    for (const line of lines) {
+      console.log('[wavepet-loopback]', line);
+      if (line === 'status all') helperStatus = `${EXCLUDE_EXE} 꺼져 있음, 전체 소리`;
+      else if (line.startsWith('status excluding')) helperStatus = `${EXCLUDE_EXE} 제외 중`;
+      else if (line.startsWith('error')) recordHelperError(line.slice(6));
+    }
+  });
+
+  child.on('error', (err) => {
+    // 실행 자체 실패 (파일 없음 등): 'exit'도 뒤따를 수 있으니 여기서는 기록만
+    recordHelperError(err.message);
+  });
+
+  child.on('exit', (code) => {
+    if (helper !== child) return; // 우리가 일부러 멈춘 경우
+    helper = null;
+    if (recordHelperError(`종료 코드 ${code}`)) return;
+    clearTimeout(helperRestartTimer);
+    helperRestartTimer = setTimeout(() => {
+      if (effectiveAudioSource() === 'exclude') startHelper();
+    }, 2000);
+  });
+}
+
+function stopHelper() {
+  clearTimeout(helperRestartTimer);
+  if (!helper) return;
+  const child = helper;
+  helper = null;
+  child.stdin.end(); // 헬퍼는 stdin이 닫히면 스스로 끝남
+  setTimeout(() => {
+    if (child.exitCode === null) child.kill();
+  }, 1000);
+}
+
+// 설정/상태에 맞춰 헬퍼를 켜거나 끄고, 렌더러에 어떤 입력을 쓸지 알린다.
+function applyAudioSource() {
+  const source = effectiveAudioSource();
+  if (source === 'exclude') startHelper();
+  else stopHelper();
+  sendToRenderer('audio:source', source);
+}
+
+ipcMain.handle('audio:get-source', () => effectiveAudioSource());
+ipcMain.on('audio:restart-helper', () => {
+  if (effectiveAudioSource() !== 'exclude') return;
+  stopHelper();
+  startHelper();
+});
+
+// ---- 창 / 메뉴 / 트레이 ----
 
 function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -51,15 +186,51 @@ function toggleWindowVisible() {
   else mainWindow.show();
 }
 
+function setAudioSource(source) {
+  settings.audioSource = source;
+  saveSettings();
+  if (source === 'exclude') {
+    // 사용자가 다시 고르면 한 번 더 기회를 준다
+    helperDisabled = false;
+    helperErrorTimes = [];
+  }
+  applyAudioSource();
+}
+
+function audioStatusLabel() {
+  if (effectiveAudioSource() === 'all') {
+    return helperDisabled ? `상태: 전체 소리 (Discord 제외 ${helperStatus})` : '상태: 전체 소리';
+  }
+  return `상태: ${helperStatus}`;
+}
+
 function buildMenuTemplate() {
   const visible = !!mainWindow && mainWindow.isVisible();
   return [
     { label: visible ? 'WavePet 숨기기' : 'WavePet 보이기', click: toggleWindowVisible },
     {
+      label: '소리 가져오기',
+      submenu: [
+        {
+          label: '전체 소리',
+          type: 'radio',
+          checked: settings.audioSource === 'all',
+          click: () => setAudioSource('all'),
+        },
+        {
+          label: `${EXCLUDE_EXE.replace('.exe', '')} 소리 제외 (Windows 11)`,
+          type: 'radio',
+          checked: settings.audioSource === 'exclude',
+          enabled: helperAvailable,
+          click: () => setAudioSource('exclude'),
+        },
+        { type: 'separator' },
+        { label: audioStatusLabel(), enabled: false },
+      ],
+    },
+    {
       label: '오디오 다시 연결',
-      click: () => {
-        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('audio:reconnect');
-      },
+      click: () => sendToRenderer('audio:reconnect'),
     },
     { type: 'separator' },
     { label: '종료', click: () => app.quit() },
@@ -104,6 +275,7 @@ app.whenReady().then(() => {
   allowLoopbackAudioCapture();
   createWindow();
   createTray();
+  if (effectiveAudioSource() === 'exclude') startHelper();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -112,4 +284,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   app.quit();
+});
+
+app.on('will-quit', () => {
+  stopHelper();
 });

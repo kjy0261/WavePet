@@ -1,0 +1,8 @@
+[package]
+name = "wavepet-loopback"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+wasapi = "0.24.0"
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_System_Diagnostics_ToolHelp"] }

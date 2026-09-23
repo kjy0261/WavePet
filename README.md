@@ -16,6 +16,27 @@
   우클릭 메뉴 → **오디오 다시 연결**을 누르세요.
 - 30fps로 제한하고, 영상 캡처는 최소 해상도/1fps로 받아 CPU 사용을 줄였습니다.
 
+## 소리 가져오기: Discord 소리 제외 (Windows 11)
+
+우클릭 메뉴 → **소리 가져오기**에서 고를 수 있습니다(기본값: Discord 소리 제외).
+
+| 방식 | 동작 |
+|---|---|
+| 전체 소리 | 스피커로 나가는 소리 전체 (Electron 루프백) |
+| Discord 소리 제외 | Discord 음성/알림을 뺀 나머지 소리만. Discord가 꺼져 있으면 자동으로 전체 소리 |
+
+- 제외 모드는 Windows 프로세스 루프백(Windows 10 빌드 20348 이상, 사실상 Windows 11)을 쓰는
+  작은 헬퍼 `native/bin/win32-x64/wavepet-loopback.exe`가 처리합니다. 소스는
+  `native/loopback/`(Rust, [wasapi](https://crates.io/crates/wasapi) 크레이트)에 있습니다.
+- 헬퍼가 몇 번 연속으로 실패하면 이번 실행 동안은 자동으로 **전체 소리**로 돌아갑니다.
+  현재 상태는 **소리 가져오기** 메뉴 맨 아래 "상태:" 줄에서 볼 수 있습니다.
+- 헬퍼 다시 빌드하기(선택, Rust 필요):
+  ```bash
+  cd native/loopback
+  cargo build --release
+  # target/release/wavepet-loopback.exe 를 native/bin/win32-x64/ 로 복사
+  ```
+
 ## 실행 방법
 
 ```bash
@@ -42,15 +63,19 @@ npm run audio-test # 오디오 캡처 확인용 테스트 창
 
 ```
 WavePet/
-├─ main.js            # 창, 트레이, 우클릭 메뉴, 루프백 캡처 허용
+├─ main.js            # 창, 트레이, 우클릭 메뉴, 루프백 캡처 허용, 헬퍼 실행
 ├─ preload.js         # 렌더러 ↔ main 통신
 ├─ src/
 │   ├─ index.html
 │   ├─ style.css
 │   ├─ renderer.js    # 오디오 → 파형 루프, 드래그 이동, (예정) 캐릭터 상태 관리
-│   ├─ audio.js       # 루프백 캡처, 장치 변경 시 자동 재연결
+│   ├─ audio.js       # 소리 입력(전체 루프백 / 헬퍼 PCM), 장치 변경 시 자동 재연결
+│   ├─ pcm-worklet.js # 헬퍼가 보낸 PCM을 분석 그래프로 흘려 보내는 AudioWorklet
 │   ├─ spectrum.js    # 주파수 → 막대 높이 (로그 대역, 가운데 배치, 자동 게인, 보간)
 │   └─ visualizer.js  # 대칭 둥근 막대 파형 캔버스 렌더링
+├─ native/
+│   ├─ loopback/      # Discord 제외 캡처 헬퍼 소스 (Rust)
+│   └─ bin/win32-x64/ # 빌드된 헬퍼 exe
 ├─ assets/pet/        # 캐릭터 이미지 (idle.png는 자리표시용 샘플)
 └─ audio-test/        # 1단계 오디오 캡처 확인용 (확인 후 삭제 예정)
 ```
