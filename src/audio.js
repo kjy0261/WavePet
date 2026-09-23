@@ -41,7 +41,7 @@ const AudioInput = (() => {
     function createAnalyser(ctx) {
       const node = ctx.createAnalyser();
       node.fftSize = FFT_SIZE;
-      node.smoothingTimeConstant = 0.5;
+      node.smoothingTimeConstant = 0.35; // 낮을수록 빠르게 반응
       node.minDecibels = -85;
       node.maxDecibels = -20;
       return node;

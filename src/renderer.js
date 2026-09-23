@@ -1,7 +1,7 @@
 const stage = document.getElementById('stage');
 const waveCanvas = document.getElementById('wave');
 
-const BAR_COUNT = 40;
+const BAR_COUNT = 56;
 const FRAME_INTERVAL_MS = 1000 / 30; // 켜 두는 위젯이라 30fps로 제한
 
 const visualizer = Visualizer.create(waveCanvas);

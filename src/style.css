@@ -28,7 +28,7 @@ html, body {
 }
 
 #pet-sprite {
-  height: 90%;
+  height: 68%;
   width: auto;
   align-self: flex-end;
   -webkit-user-drag: none;

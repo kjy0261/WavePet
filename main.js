@@ -4,8 +4,8 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 
 // 왼쪽 파형 + 오른쪽 펫이 들어가는 가로형 위젯 크기
-const WINDOW_WIDTH = 460;
-const WINDOW_HEIGHT = 170;
+const WINDOW_WIDTH = 500;
+const WINDOW_HEIGHT = 220;
 
 const petIconPath = path.join(__dirname, 'assets', 'pet', 'idle.png');
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
