@@ -1,25 +1,32 @@
 // 캐릭터 상태와 연출
-//  - idle: 가만히 (idle.png)
-//  - listening: 소리가 나는 동안 좌우로 천천히 흔들림 (#pet.listening, listen.png)
-//  - beat: 박자마다 통통 튀며 잠깐 beat.png로 바뀌고, 몇 박자에 한 번 머리 위로 ♪가 떠오름
-// listen.png / beat.png가 없거나 못 읽으면 idle.png로 대신 보여 준다.
+//  - idle(idle.png): 가만히
+//  - listening(listen.png): 좌우로 천천히 흔들림 (#pet.listening).
+//    박자마다 통통 튀고, 몇 박자에 한 번 머리 위로 ♪가 떠오름
+//
+// 상태가 자주 왔다 갔다 하지 않도록 전환 기준을 둔다.
+//  - idle → listening: 소리(loudness > LISTEN_ON)가 LISTEN_AFTER_MS 동안 끊김 없이 이어질 때
+//    (알림음처럼 잠깐 나는 소리에는 반응하지 않음)
+//  - listening → idle: 조용함(loudness < QUIET_BELOW)이 IDLE_AFTER_MS 동안 이어질 때
+//    (곡 중간의 조용한 부분이나 곡 사이 공백에서는 그대로 듣는 중)
+//  - QUIET_BELOW를 LISTEN_ON보다 낮게 두어 경계 음량에서 흔들리지 않게 함
+// listen.png가 없거나 못 읽으면 idle.png로 대신 보여 준다.
 const Pet = (() => {
-  const LISTEN_ON = 0.12; // 이 loudness를 넘으면 듣는 중
-  const QUIET_TO_IDLE_MS = 1500; // 조용해지고 이만큼 지나면 idle
+  const LISTEN_ON = 0.12; // 이보다 크면 '소리 남'
+  const QUIET_BELOW = 0.06; // 이보다 작으면 '조용함'
+  const LISTEN_AFTER_MS = 1000;
+  const IDLE_AFTER_MS = 4000;
   const NOTE_EVERY_BEATS = 4;
   const NOTES = ['♪', '♫', '♩'];
-  const BEAT_FACE_MS = 180; // 박자 표정을 보여 주는 시간
   const FACE_FILES = {
     idle: '../assets/pet/idle.png',
     listen: '../assets/pet/listen.png',
-    beat: '../assets/pet/beat.png',
   };
 
   function create(petEl, spriteEl) {
     let listening = false;
-    let lastLoudAt = 0;
+    let loudSince = null; // 소리가 계속 나기 시작한 시각
+    let quietSince = null; // 조용함이 계속되기 시작한 시각
     let beatCount = 0;
-    let beatFaceTimer = null;
 
     // 미리 읽어 두어 표정이 바뀔 때 깜빡이지 않게 하고, 못 읽은 표정은 idle로 대체
     const faces = { ...FACE_FILES };
@@ -34,10 +41,6 @@ const Pet = (() => {
     function setFace(name) {
       const src = faces[name];
       if (spriteEl.getAttribute('src') !== src) spriteEl.setAttribute('src', src);
-    }
-
-    function restingFace() {
-      return listening ? 'listen' : 'idle';
     }
 
     function bounce() {
@@ -61,25 +64,21 @@ const Pet = (() => {
       if (listening === value) return;
       listening = value;
       petEl.classList.toggle('listening', value);
-      if (!beatFaceTimer) setFace(restingFace());
+      setFace(value ? 'listen' : 'idle');
     }
 
     function update({ loudness, beat }, now) {
-      if (loudness > LISTEN_ON) {
-        lastLoudAt = now;
+      loudSince = loudness > LISTEN_ON ? (loudSince ?? now) : null;
+      quietSince = loudness < QUIET_BELOW ? (quietSince ?? now) : null;
+
+      if (!listening && loudSince !== null && now - loudSince >= LISTEN_AFTER_MS) {
         setListening(true);
-      } else if (listening && now - lastLoudAt > QUIET_TO_IDLE_MS) {
+      } else if (listening && quietSince !== null && now - quietSince >= IDLE_AFTER_MS) {
         setListening(false);
       }
 
       if (beat && listening) {
         bounce();
-        setFace('beat');
-        clearTimeout(beatFaceTimer);
-        beatFaceTimer = setTimeout(() => {
-          beatFaceTimer = null;
-          setFace(restingFace());
-        }, BEAT_FACE_MS);
         beatCount++;
         if (beatCount % NOTE_EVERY_BEATS === 0) spawnNote();
       }
