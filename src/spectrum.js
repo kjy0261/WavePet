@@ -1,7 +1,6 @@
 // FFT 주파수 데이터를 막대 높이(0~1) 배열로 바꾼다.
 //  - 로그 스케일 대역: 저음 쪽에 막대가 몰리지 않게
-//  - 가운데에서 바깥으로 배치: 저음이 가운데, 고음이 양옆이라 가운데가 불룩한 모양.
-//    대역을 좌/우에 번갈아 놓아 완전한 좌우 대칭은 피한다.
+//  - 한 줄 배치: 왼쪽이 저음, 오른쪽이 고음
 //  - 자동 게인: 최근 최대값으로 나눠 조용한 곡도 적당히 움직이게
 //  - 대비: 최대값 대비 CONTRAST_CUT 아래는 잘라 내서, 두드러진 대역만 길게 솟게
 //    (주파수 값이 dB 단위라 그대로 쓰면 대부분 막대가 비슷하게 높아 꽉 차 보임)
@@ -13,7 +12,7 @@ const Spectrum = (() => {
   const RELEASE = 0.22; // 클수록 빨리 내려와 막대가 높은 채로 머물지 않음
   const GAIN_DECAY = 0.996; // 최대값 기준을 천천히 낮춤(프레임당)
   const GAIN_FLOOR = 0.35; // 무음/아주 작은 소리를 과하게 키우지 않게
-  const HIGH_TILT = 0.5; // 고음 대역이 약하게 나오는 걸 보정
+  const HIGH_TILT = 0.8; // 고음 대역이 약하게 나와 오른쪽이 늘 짧아지는 걸 보정
   const CONTRAST_CUT = 0.5; // 최대값의 이 비율 이하인 대역은 최소 높이로
   const CONTRAST_CURVE = 1.3; // 1보다 크면 중간 높이를 더 눌러 대비를 키움
   const HEADROOM = 0.92; // 가장 큰 막대도 끝까지 닿지 않게 살짝 여유
@@ -22,15 +21,6 @@ const Spectrum = (() => {
     const levels = new Float32Array(barCount);
     const raw = new Float32Array(barCount);
     let peak = GAIN_FLOOR;
-
-    // 대역 k(0 = 최저음)를 그릴 위치: 가운데부터 좌우로 번갈아
-    const position = new Array(barCount);
-    let left = Math.floor(barCount / 2) - 1;
-    let right = left + 1;
-    for (let k = 0; k < barCount; k++) {
-      const goLeft = (k % 2 === 0 && left >= 0) || right >= barCount;
-      position[k] = goLeft ? left-- : right++;
-    }
 
     function bandRange(k, binHz, binCount) {
       const lo = MIN_HZ * Math.pow(MAX_HZ / MIN_HZ, k / barCount);
@@ -57,7 +47,7 @@ const Spectrum = (() => {
           v = ((sum / (to - from)) * 0.5 + max * 0.5) / 255;
           v *= 1 + HIGH_TILT * (k / barCount);
         }
-        raw[position[k]] = v;
+        raw[k] = v;
         if (v > frameMax) frameMax = v;
       }
 

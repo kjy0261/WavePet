@@ -27,11 +27,59 @@ html, body {
   min-width: 0;
 }
 
-#pet-sprite {
+/* 흔들림(sway)은 #pet, 튀기(bounce)는 #pet-sprite에 걸어 두 움직임이 겹쳐지게 한다. */
+#pet {
+  position: relative;
   height: 68%;
-  width: auto;
   align-self: flex-end;
+  transform-origin: 50% 100%; /* 발을 축으로 */
+}
+
+#pet-sprite {
+  height: 100%;
+  width: auto;
+  display: block;
   -webkit-user-drag: none;
   transform-origin: 50% 100%;
   will-change: transform;
+}
+
+/* listening: 음악이 나오는 동안 좌우로 천천히 흔들림 */
+@keyframes pet-sway {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+
+#pet.listening {
+  animation: pet-sway 1.6s ease-in-out infinite;
+}
+
+/* beat: 박자마다 살짝 눌렸다 튀어오르는 스쿼시 앤 스트레치 */
+@keyframes pet-beat-bounce {
+  0% { transform: scale(1, 1) translateY(0); }
+  15% { transform: scale(1.06, 0.93) translateY(0); }
+  40% { transform: scale(0.96, 1.05) translateY(-5%); }
+  65% { transform: scale(1.02, 0.98) translateY(0); }
+  100% { transform: scale(1, 1) translateY(0); }
+}
+
+#pet-sprite.bounce {
+  animation: pet-beat-bounce 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 머리 위로 떠오르며 사라지는 음표 */
+@keyframes note-float {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.7); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--drift, 0), -60px) scale(1.1); }
+}
+
+.note {
+  position: absolute;
+  top: -6px;
+  color: #ffffff;
+  font-size: 20px;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  animation: note-float 1.4s ease-out forwards;
 }

@@ -1,11 +1,15 @@
 const stage = document.getElementById('stage');
 const waveCanvas = document.getElementById('wave');
+const petEl = document.getElementById('pet');
+const sprite = document.getElementById('pet-sprite');
 
 const BAR_COUNT = 56;
 const FRAME_INTERVAL_MS = 1000 / 30; // 켜 두는 위젯이라 30fps로 제한
 
 const visualizer = Visualizer.create(waveCanvas);
 const spectrum = Spectrum.create(BAR_COUNT);
+const beatDetector = BeatDetector.create();
+const pet = Pet.create(petEl, sprite);
 const audio = AudioInput.create({
   onStatus: (status) => console.log('[wavepet] audio:', status),
   restartHelper: () => window.petAPI.restartAudioHelper(),
@@ -21,8 +25,9 @@ function frame(now) {
   requestAnimationFrame(frame);
   if (now - lastFrame < FRAME_INTERVAL_MS - 2) return; // 60Hz에서 2프레임마다 한 번 그리도록 여유를 둠
   lastFrame = now;
-  const levels = spectrum.update(audio.getFrequencyData(), audio.binHz);
-  visualizer.draw(levels);
+  const freq = audio.getFrequencyData();
+  visualizer.draw(spectrum.update(freq, audio.binHz));
+  pet.update(beatDetector.update(freq, audio.binHz, now), now);
 }
 requestAnimationFrame(frame);
 

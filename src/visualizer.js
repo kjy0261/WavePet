@@ -1,7 +1,8 @@
 // 세로 중앙 기준 위아래 대칭인 둥근 막대 파형을 캔버스에 그린다.
 // levels: 0~1 사이 값 배열(막대 하나당 하나, spectrum.js가 만들어 줌).
 const Visualizer = (() => {
-  const MIN_BAR_RATIO = 0.05; // 무음일 때도 막대가 짧게 남아 위젯이 비어 보이지 않게
+  const MIN_BAR_RATIO = 0.04; // 무음일 때도 막대가 짧게 남아 위젯이 비어 보이지 않게
+  const MAX_BAR_RATIO = 0.55; // 가장 큰 막대도 캔버스 높이의 이 비율까지만 (위아래 폭)
   const BAR_WIDTH_RATIO = 0.3; // 막대 폭 / 막대 한 칸 폭 (작을수록 가늘고 간격 넓음)
 
   function create(canvas, { color = '#ffffff' } = {}) {
@@ -27,7 +28,7 @@ const Visualizer = (() => {
       const slot = w / levels.length;
       const barW = Math.max(1.5, slot * BAR_WIDTH_RATIO);
       for (let i = 0; i < levels.length; i++) {
-        const level = Math.max(MIN_BAR_RATIO, Math.min(1, levels[i]));
+        const level = Math.max(MIN_BAR_RATIO, Math.min(1, levels[i]) * MAX_BAR_RATIO);
         const barH = level * h;
         const x = i * slot + (slot - barW) / 2;
         ctx.beginPath();
