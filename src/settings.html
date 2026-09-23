@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>WavePet 배경 설정</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 16px 18px;
+      font: 13px 'Segoe UI', 'Malgun Gothic', sans-serif;
+      background: #1f232b;
+      color: #e8ebf0;
+      user-select: none;
+    }
+    h2 {
+      margin: 0 0 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #9aa3b2;
+    }
+    section { margin-bottom: 16px; }
+    #presets {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+    }
+    .swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      padding: 0;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+    }
+    .swatch.selected { border-color: #ffffff; }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    input[type='color'] {
+      width: 44px;
+      height: 28px;
+      padding: 0;
+      border: none;
+      background: none;
+      cursor: pointer;
+    }
+    input[type='range'] { flex: 1; }
+    #color-value, #opacity-value {
+      font-variant-numeric: tabular-nums;
+      color: #c3c9d4;
+      min-width: 44px;
+    }
+    button#reset {
+      font: inherit;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #3a404c;
+      background: #2a2f39;
+      color: #e8ebf0;
+      cursor: pointer;
+    }
+    button#reset:hover { background: #343a46; }
+  </style>
+</head>
+<body>
+  <section>
+    <h2>빠른 선택</h2>
+    <div id="presets"></div>
+  </section>
+  <section>
+    <h2>직접 고르기</h2>
+    <div class="row">
+      <input id="color" type="color" />
+      <span id="color-value"></span>
+    </div>
+  </section>
+  <section>
+    <h2>불투명도</h2>
+    <div class="row">
+      <input id="opacity" type="range" min="20" max="100" step="1" />
+      <span id="opacity-value"></span>
+    </div>
+  </section>
+  <button id="reset">기본값으로</button>
+  <script src="settings.js"></script>
+</body>
+</html>

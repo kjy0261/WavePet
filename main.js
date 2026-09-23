@@ -43,6 +43,13 @@ function saveSettings() {
   fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
 }
 
+// 슬라이더를 끄는 동안 파일을 계속 쓰지 않도록 잠깐 모았다가 저장
+let saveTimer = null;
+function saveSettingsSoon() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveSettings, 400);
+}
+
 function sendToRenderer(channel, ...args) {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, ...args);
 }
@@ -209,6 +216,61 @@ function stopMediaHelper() {
   }, 1000);
 }
 
+// ---- 배경 설정 ----
+
+const DEFAULT_BACKGROUND = { color: '#3b414e', opacity: 0.8 };
+const MIN_OPACITY = 0.2;
+
+function sanitizeBackground(bg) {
+  if (!bg || typeof bg.color !== 'string' || !/^#[0-9a-f]{6}$/i.test(bg.color)) return null;
+  const opacity = Number(bg.opacity);
+  if (!Number.isFinite(opacity)) return null;
+  return { color: bg.color.toLowerCase(), opacity: Math.min(1, Math.max(MIN_OPACITY, opacity)) };
+}
+
+function currentBackground() {
+  return sanitizeBackground(settings.background) || DEFAULT_BACKGROUND;
+}
+
+ipcMain.handle('settings:get-background', () => currentBackground());
+ipcMain.on('settings:set-background', (event, bg) => {
+  const clean = sanitizeBackground(bg);
+  if (!clean) return;
+  settings.background = clean;
+  saveSettingsSoon();
+  sendToRenderer('settings:background', clean);
+});
+
+let settingsWindow = null;
+
+function openSettingsWindow() {
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.focus();
+    return;
+  }
+  settingsWindow = new BrowserWindow({
+    width: 320,
+    height: 300,
+    title: 'WavePet 배경 설정',
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    alwaysOnTop: true,
+    backgroundColor: '#1f232b',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  settingsWindow.setMenuBarVisibility(false);
+  settingsWindow.loadFile(path.join(__dirname, 'src', 'settings.html'));
+  settingsWindow.on('closed', () => {
+    settingsWindow = null;
+  });
+}
+
 // ---- 창 / 메뉴 / 트레이 ----
 
 function createWindow() {
@@ -296,6 +358,7 @@ function buildMenuTemplate() {
         { label: audioStatusLabel(), enabled: false },
       ],
     },
+    { label: '배경 설정...', click: openSettingsWindow },
     {
       label: '오디오 다시 연결',
       click: () => sendToRenderer('audio:reconnect'),
@@ -356,6 +419,8 @@ app.on('window-all-closed', () => {
 });
 
 app.on('will-quit', () => {
+  clearTimeout(saveTimer);
+  saveSettings();
   stopHelper();
   stopMediaHelper();
 });

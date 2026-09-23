@@ -27,6 +27,11 @@ const player = Player.create(
 );
 window.petAPI.onNowPlaying((info) => player.show(info));
 $('more').addEventListener('click', () => window.petAPI.showContextMenu());
+
+// 배경 색/투명도 (우클릭 메뉴 → 배경 설정...)
+const applyBackground = (bg) => visualizer.setColor(Theme.apply(bg));
+window.petAPI.getBackground().then(applyBackground);
+window.petAPI.onBackground(applyBackground);
 const audio = AudioInput.create({
   onStatus: (status) => console.log('[wavepet] audio:', status),
   restartHelper: () => window.petAPI.restartAudioHelper(),

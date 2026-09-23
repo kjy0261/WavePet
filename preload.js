@@ -14,4 +14,9 @@ contextBridge.exposeInMainWorld('petAPI', {
   // 지금 재생 중인 곡 {has, playing, title, artist, app, position, duration}
   onNowPlaying: (callback) => ipcRenderer.on('media:now-playing', (_event, info) => callback(info)),
   mediaCommand: (cmd) => ipcRenderer.send('media:command', cmd),
+
+  // 배경 설정 {color: '#rrggbb', opacity: 0~1}
+  getBackground: () => ipcRenderer.invoke('settings:get-background'),
+  setBackground: (bg) => ipcRenderer.send('settings:set-background', bg),
+  onBackground: (callback) => ipcRenderer.on('settings:background', (_event, bg) => callback(bg)),
 });
