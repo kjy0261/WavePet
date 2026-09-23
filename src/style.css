@@ -97,12 +97,17 @@ html, body {
   margin-top: 4px;
 }
 
+/* 캐릭터 그림(512×512)은 캔버스 둘레에 투명 여백이 커서, 그림을 크게 그리고
+   여백만큼 음수 margin을 줘 실제 보이는 캐릭터가 윗부분 높이를 꽉 채우게 한다.
+   (여백 비율: 위 16% · 아래 20% · 왼쪽 24% · 오른쪽 31%, 128px 기준으로 계산) */
 #pet {
   position: relative;
   flex: none;
-  height: 86px;
+  height: 128px;
+  margin: -20px -36px -26px -28px;
   align-self: center;
-  transform-origin: 50% 100%; /* 흔들림은 발을 축으로 */
+  transform-origin: 50% 80%; /* 흔들림은 발(그림 아래쪽 80% 지점)을 축으로 */
+  pointer-events: none; /* 투명 여백이 겹친 ••• 버튼 등을 가리지 않게 */
 }
 
 #pet-sprite {
@@ -131,7 +136,7 @@ html, body {
 
 .note {
   position: absolute;
-  top: 0;
+  top: 14%;
   color: #ffffff;
   font-size: 16px;
   pointer-events: none;
