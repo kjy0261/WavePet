@@ -3,18 +3,19 @@
 //  - listening(listen.png): 좌우로 천천히 흔들림 (#pet.listening).
 //    몇 박자에 한 번 머리 위로 ♪가 떠오름
 //
-// 상태가 자주 왔다 갔다 하지 않도록 전환 기준을 둔다.
-//  - idle → listening: 소리(loudness > LISTEN_ON)가 LISTEN_AFTER_MS 동안 끊김 없이 이어질 때
-//    (알림음처럼 잠깐 나는 소리에는 반응하지 않음)
-//  - listening → idle: 조용함(loudness < QUIET_BELOW)이 IDLE_AFTER_MS 동안 이어질 때
-//    (곡 중간의 조용한 부분이나 곡 사이 공백에서는 그대로 듣는 중)
-//  - QUIET_BELOW를 LISTEN_ON보다 낮게 두어 경계 음량에서 흔들리지 않게 함
+// 전환 기준
+//  1) 재생 앱이 Windows 미디어 정보로 재생 상태를 알려 주면(setMediaPlaying) 그대로 따른다.
+//     노래가 시작/정지되면 바로 바뀌고, 곡 중간의 조용한 부분에도 흔들리지 않는다.
+//  2) 알려 주지 않으면(null) 소리 크기로 판단한다.
+//     - idle → listening: 소리(loudness > LISTEN_ON)가 LISTEN_AFTER_MS 동안 이어질 때
+//     - listening → idle: 조용함(loudness < QUIET_BELOW)이 IDLE_AFTER_MS 동안 이어질 때
+//     - QUIET_BELOW를 LISTEN_ON보다 낮게 두어 경계 음량에서 흔들리지 않게 함
 // listen.png가 없거나 못 읽으면 idle.png로 대신 보여 준다.
 const Pet = (() => {
   const LISTEN_ON = 0.12; // 이보다 크면 '소리 남'
   const QUIET_BELOW = 0.06; // 이보다 작으면 '조용함'
-  const LISTEN_AFTER_MS = 1000;
-  const IDLE_AFTER_MS = 4000;
+  const LISTEN_AFTER_MS = 500;
+  const IDLE_AFTER_MS = 2000;
   const NOTE_EVERY_BEATS = 4;
   const NOTES = ['♪', '♫', '♩'];
   const FACE_FILES = {
@@ -27,6 +28,7 @@ const Pet = (() => {
     let loudSince = null; // 소리가 계속 나기 시작한 시각
     let quietSince = null; // 조용함이 계속되기 시작한 시각
     let beatCount = 0;
+    let mediaPlaying = null; // true/false: 미디어 정보의 재생 상태, null: 정보 없음
 
     // 미리 읽어 두어 표정이 바뀔 때 깜빡이지 않게 하고, 못 읽은 표정은 idle로 대체
     const faces = { ...FACE_FILES };
@@ -64,7 +66,9 @@ const Pet = (() => {
       loudSince = loudness > LISTEN_ON ? (loudSince ?? now) : null;
       quietSince = loudness < QUIET_BELOW ? (quietSince ?? now) : null;
 
-      if (!listening && loudSince !== null && now - loudSince >= LISTEN_AFTER_MS) {
+      if (mediaPlaying !== null) {
+        setListening(mediaPlaying);
+      } else if (!listening && loudSince !== null && now - loudSince >= LISTEN_AFTER_MS) {
         setListening(true);
       } else if (listening && quietSince !== null && now - quietSince >= IDLE_AFTER_MS) {
         setListening(false);
@@ -76,7 +80,13 @@ const Pet = (() => {
       }
     }
 
-    return { update };
+    return {
+      update,
+      setMediaPlaying(value) {
+        mediaPlaying = value;
+        if (value !== null) setListening(value); // 다음 프레임을 기다리지 않고 바로
+      },
+    };
   }
 
   return { create };

@@ -2,7 +2,8 @@
 //! 같은 정보)에서 곡 제목/아티스트/재생 위치를 읽어 알리고, 재생 조작 명령을 받는다.
 //! 크롬/엣지의 유튜브, 스포티파이 등 SMTC에 정보를 올리는 앱이면 동작한다.
 //!
-//! - stdout: 정보가 바뀔 때마다 JSON 한 줄
+//! - stdout: 정보가 바뀔 때마다 JSON 한 줄. 재생 위치는 흐르는 대로 앱이 보정하므로
+//!   되감기/건너뛰기처럼 예상과 1초 넘게 어긋날 때만 다시 알린다.
 //!   {"has":true,"playing":true,"title":"...","artist":"...","app":"...",
 //!    "position":83.2,"duration":256.0}      (초 단위, 길이를 모르면 duration 0)
 //!   {"has":false}                            (조작할 세션 없음)
@@ -11,7 +12,7 @@
 
 use std::io::{self, BufRead, Write};
 use std::sync::mpsc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use serde_json::json;
 use windows::Media::Control::{
@@ -20,7 +21,8 @@ use windows::Media::Control::{
     GlobalSystemMediaTransportControlsSessionPlaybackStatus as Status,
 };
 
-const POLL_INTERVAL: Duration = Duration::from_millis(1000);
+const POLL_INTERVAL: Duration = Duration::from_millis(250); // 재생/일시정지를 빨리 알리려고 짧게
+const SEEK_TOLERANCE_SEC: f64 = 1.0;
 const TICKS_PER_SEC: f64 = 10_000_000.0; // WinRT 시간 단위 100ns
 const UNIX_EPOCH_AS_WINRT_TICKS: i64 = 116_444_736_000_000_000; // 1601-01-01 기준
 
@@ -91,10 +93,30 @@ fn describe(session: Option<&Session>) -> serde_json::Value {
         "title": title,
         "artist": artist,
         "app": app,
-        // 소수 첫째 자리까지만: 매번 미세하게 달라져 줄이 쏟아지지 않게
         "position": (position * 10.0).round() / 10.0,
         "duration": (duration * 10.0).round() / 10.0,
     })
+}
+
+/// 재생 위치 말고 다른 것이 바뀌었거나, 위치가 흐른 시간으로 예상한 값과 크게 어긋날 때만 알린다.
+fn should_emit(last: Option<&(serde_json::Value, Instant)>, info: &serde_json::Value) -> bool {
+    let Some((prev, sent_at)) = last else { return true };
+    let without_position = |v: &serde_json::Value| {
+        let mut v = v.clone();
+        if let Some(obj) = v.as_object_mut() {
+            obj.remove("position");
+        }
+        v
+    };
+    if without_position(prev) != without_position(info) {
+        return true;
+    }
+    let pos = |v: &serde_json::Value| v["position"].as_f64().unwrap_or(0.0);
+    let mut expected = pos(prev);
+    if prev["playing"].as_bool().unwrap_or(false) {
+        expected += sent_at.elapsed().as_secs_f64();
+    }
+    (pos(info) - expected).abs() > SEEK_TOLERANCE_SEC
 }
 
 fn run_command(session: Option<&Session>, cmd: &str) {
@@ -135,16 +157,16 @@ fn main() {
         }
     };
 
-    let mut last = String::new();
+    let mut last: Option<(serde_json::Value, Instant)> = None;
     loop {
         let session = pick_session(&manager);
-        let line = describe(session.as_ref()).to_string();
-        if line != last {
+        let info = describe(session.as_ref());
+        if should_emit(last.as_ref(), &info) {
             let mut out = io::stdout();
-            if writeln!(out, "{line}").and_then(|_| out.flush()).is_err() {
+            if writeln!(out, "{info}").and_then(|_| out.flush()).is_err() {
                 std::process::exit(0);
             }
-            last = line;
+            last = Some((info, Instant::now()));
         }
 
         // 명령이 오면 바로 실행하고 곧장 상태를 다시 알린다

@@ -25,7 +25,10 @@ const player = Player.create(
   },
   { onCommand: (cmd) => window.petAPI.mediaCommand(cmd) }
 );
-window.petAPI.onNowPlaying((info) => player.show(info));
+window.petAPI.onNowPlaying((info) => {
+  player.show(info);
+  pet.setMediaPlaying(info && info.has ? !!info.playing : null);
+});
 $('more').addEventListener('click', () => window.petAPI.showContextMenu());
 
 // 배경 색/투명도 (우클릭 메뉴 → 배경 설정...)
