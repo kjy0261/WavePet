@@ -4,3 +4,4 @@ build/
 *.log
 .DS_Store
 native/loopback/target/
+native/media/target/

@@ -21,6 +21,14 @@
 
   `listen.png`가 없으면 `idle.png`로 대신 보여 줍니다.
 
+## 지금 재생 중인 곡 제목
+
+- 박스 아래쪽에 `♪ 제목 · 아티스트`를 보여 줍니다. 칸보다 길면 좌우로 천천히 흐릅니다.
+- Windows 미디어 정보(볼륨 키를 누르면 뜨는 미디어 팝업과 같은 정보, SMTC)를 읽으므로
+  크롬/엣지의 유튜브(영상 제목 · 채널 이름), 스포티파이 등에서 동작합니다.
+- 재생 중인 곡이 없으면 제목 줄은 비워 둡니다.
+- 작은 헬퍼 `native/bin/win32-x64/wavepet-media.exe`가 처리하며, 소스는 `native/media/`(Rust)에 있습니다.
+
 ## 파형 동작
 
 - 앱이 켜지면 자동으로 시스템 소리를 캡처해 파형 막대 56개로 보여 줍니다.
@@ -77,7 +85,7 @@ npm run audio-test # 오디오 캡처 확인용 테스트 창
 
 ```
 WavePet/
-├─ main.js            # 창, 트레이, 우클릭 메뉴, 루프백 캡처 허용, 헬퍼 실행
+├─ main.js            # 창, 트레이, 우클릭 메뉴, 루프백 캡처 허용, 헬퍼 실행(오디오/곡 정보)
 ├─ preload.js         # 렌더러 ↔ main 통신
 ├─ src/
 │   ├─ index.html
@@ -88,9 +96,11 @@ WavePet/
 │   ├─ spectrum.js    # 주파수 → 막대 높이 (로그 대역, 자동 게인, 대비, 보간)
 │   ├─ visualizer.js  # 둥근 막대 파형 캔버스 렌더링
 │   ├─ beat.js        # 소리 크기(loudness)와 박자(beat) 감지
+│   ├─ now-playing.js # 곡 제목 줄 (길면 흐르기)
 │   └─ pet.js         # 캐릭터 상태(idle/listening) 전환 기준, 그림 전환, 흔들림·음표 연출
 ├─ native/
 │   ├─ loopback/      # Discord 제외 캡처 헬퍼 소스 (Rust)
+│   ├─ media/         # 재생 중인 곡 정보 헬퍼 소스 (Rust)
 │   └─ bin/win32-x64/ # 빌드된 헬퍼 exe
 ├─ assets/pet/        # 캐릭터 그림 idle / listen
 └─ audio-test/        # 1단계 오디오 캡처 확인용 (확인 후 삭제 예정)

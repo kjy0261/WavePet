@@ -10,6 +10,11 @@ const visualizer = Visualizer.create(waveCanvas);
 const spectrum = Spectrum.create(BAR_COUNT);
 const beatDetector = BeatDetector.create();
 const pet = Pet.create(petEl, sprite);
+const nowPlaying = NowPlaying.create(
+  document.getElementById('now-playing'),
+  document.getElementById('now-playing-text')
+);
+window.petAPI.onNowPlaying((info) => nowPlaying.show(info));
 const audio = AudioInput.create({
   onStatus: (status) => console.log('[wavepet] audio:', status),
   restartHelper: () => window.petAPI.restartAudioHelper(),

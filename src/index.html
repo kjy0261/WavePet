@@ -8,16 +8,20 @@
 </head>
 <body>
   <div id="stage">
-    <canvas id="wave"></canvas>
-    <div id="pet">
-      <img id="pet-sprite" src="../assets/pet/idle.png" alt="WavePet" draggable="false" />
+    <div id="row">
+      <canvas id="wave"></canvas>
+      <div id="pet">
+        <img id="pet-sprite" src="../assets/pet/idle.png" alt="WavePet" draggable="false" />
+      </div>
     </div>
+    <div id="now-playing" hidden><span id="now-playing-text"></span></div>
   </div>
   <script src="audio.js"></script>
   <script src="spectrum.js"></script>
   <script src="visualizer.js"></script>
   <script src="beat.js"></script>
   <script src="pet.js"></script>
+  <script src="now-playing.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

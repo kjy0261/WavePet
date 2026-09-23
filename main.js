@@ -19,6 +19,13 @@ const helperPath = path
   .replace('app.asar', 'app.asar.unpacked');
 const helperAvailable = process.platform === 'win32' && process.arch === 'x64' && fs.existsSync(helperPath);
 
+// 지금 재생 중인 곡 정보 (Windows 미디어 세션, native/media 헬퍼)
+const mediaHelperPath = path
+  .join(__dirname, 'native', 'bin', 'win32-x64', 'wavepet-media.exe')
+  .replace('app.asar', 'app.asar.unpacked');
+const mediaHelperAvailable =
+  process.platform === 'win32' && process.arch === 'x64' && fs.existsSync(mediaHelperPath);
+
 let mainWindow = null;
 let tray = null;
 let settings = loadSettings();
@@ -143,6 +150,59 @@ ipcMain.on('audio:restart-helper', () => {
   startHelper();
 });
 
+// ---- 미디어 헬퍼 (지금 재생 중인 곡 제목) ----
+
+const MEDIA_HELPER_MAX_RESTARTS = 3;
+
+let mediaHelper = null;
+let mediaHelperRestarts = 0;
+let nowPlaying = { playing: false };
+
+function startMediaHelper() {
+  if (!mediaHelperAvailable || mediaHelper) return;
+  const child = spawn(mediaHelperPath, [], { stdio: 'pipe', windowsHide: true });
+  mediaHelper = child;
+
+  // stdout: 곡 정보가 바뀔 때마다 JSON 한 줄
+  let text = '';
+  child.stdout.setEncoding('utf8');
+  child.stdout.on('data', (chunk) => {
+    text += chunk;
+    const lines = text.split(/\r?\n/);
+    text = lines.pop();
+    for (const line of lines) {
+      try {
+        nowPlaying = JSON.parse(line);
+      } catch (err) {
+        continue;
+      }
+      sendToRenderer('media:now-playing', nowPlaying);
+    }
+  });
+  child.stderr.setEncoding('utf8');
+  child.stderr.on('data', (line) => console.warn('[wavepet-media]', line.trim()));
+  child.on('error', (err) => console.warn('[wavepet-media] 실행 실패:', err.message));
+
+  child.on('exit', () => {
+    if (mediaHelper !== child) return; // 일부러 멈춘 경우
+    mediaHelper = null;
+    nowPlaying = { playing: false };
+    sendToRenderer('media:now-playing', nowPlaying);
+    // 제목 표시는 부가 기능이라 몇 번만 다시 시도하고 포기
+    if (++mediaHelperRestarts <= MEDIA_HELPER_MAX_RESTARTS) setTimeout(startMediaHelper, 3000);
+  });
+}
+
+function stopMediaHelper() {
+  if (!mediaHelper) return;
+  const child = mediaHelper;
+  mediaHelper = null;
+  child.stdin.end(); // 헬퍼는 stdin이 닫히면 스스로 끝남
+  setTimeout(() => {
+    if (child.exitCode === null) child.kill();
+  }, 1000);
+}
+
 // ---- 창 / 메뉴 / 트레이 ----
 
 function createWindow() {
@@ -174,6 +234,8 @@ function createWindow() {
   mainWindow.setAlwaysOnTop(true, 'screen-saver');
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
+  // 새로고침 등으로 렌더러가 다시 떠도 마지막 곡 정보를 다시 보내 줌
+  mainWindow.webContents.on('did-finish-load', () => sendToRenderer('media:now-playing', nowPlaying));
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -276,6 +338,7 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
   if (effectiveAudioSource() === 'exclude') startHelper();
+  startMediaHelper();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -288,4 +351,5 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   stopHelper();
+  stopMediaHelper();
 });
