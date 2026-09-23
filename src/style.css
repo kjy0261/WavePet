@@ -16,11 +16,10 @@ html, body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 10px 14px;
+  padding: 6px 12px;
   box-sizing: border-box;
   cursor: grab;
   background: rgba(15, 28, 46, 0.86);
-  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 18px;
 }
 
@@ -30,7 +29,7 @@ html, body {
   min-height: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 /* 지금 재생 중인 곡: 박스 아래쪽 한 줄. 길면 좌우로 흐른다(.scroll). */
@@ -42,7 +41,7 @@ html, body {
   font: 12px 'Segoe UI', 'Malgun Gothic', sans-serif;
   height: 18px;
   line-height: 18px;
-  padding-top: 4px;
+  padding-top: 0;
 }
 
 /* 곡이 없을 때도 자리는 남겨 두어, 제목이 생기거나 사라질 때 파형/캐릭터 크기가 들썩이지 않게 */
@@ -72,7 +71,7 @@ html, body {
 
 #pet {
   position: relative;
-  height: 68%;
+  height: 86%;
   align-self: center; /* 캐릭터 세로 중심을 파형 중심선(캔버스 가운데)에 맞춤 */
   transform-origin: 50% 100%; /* 흔들림은 발을 축으로 */
 }
