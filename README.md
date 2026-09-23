@@ -11,6 +11,15 @@
 
 - 음악이 나오면 좌우로 천천히 흔들리고(listening), 소리가 멈추고 1.5초 지나면 가만히 있습니다.
 - 저음(킥 드럼)이 튀는 박자마다 통통 튀고, 4박자에 한 번 머리 위로 ♪가 떠오릅니다.
+- 캐릭터 그림(`assets/pet/`, 512×512 투명 PNG, 모두 같은 위치에 그리기):
+
+  | 파일 | 언제 |
+  |---|---|
+  | `idle.png` | 조용할 때 (눈 뜬 모습) |
+  | `listen.png` | 음악 듣는 동안 (눈 감은 모습) |
+  | `beat.png` | 박자마다 잠깐 (0.18초) |
+
+  `listen.png`나 `beat.png`가 없으면 `idle.png`로 대신 보여 줍니다.
 
 ## 파형 동작
 
@@ -77,13 +86,13 @@ WavePet/
 │   ├─ audio.js       # 소리 입력(전체 루프백 / 헬퍼 PCM), 장치 변경 시 자동 재연결
 │   ├─ pcm-worklet.js # 헬퍼가 보낸 PCM을 분석 그래프로 흘려 보내는 AudioWorklet
 │   ├─ spectrum.js    # 주파수 → 막대 높이 (로그 대역, 자동 게인, 대비, 보간)
-│   ├─ visualizer.js  # 대칭 둥근 막대 파형 캔버스 렌더링
+│   ├─ visualizer.js  # 둥근 막대 파형 캔버스 렌더링
 │   ├─ beat.js        # 소리 크기(loudness)와 박자(beat) 감지
-│   └─ pet.js         # 캐릭터 상태(idle/listening/beat)와 흔들림·튀기·음표 연출
+│   └─ pet.js         # 캐릭터 상태(idle/listening/beat)별 그림 전환과 흔들림·튀기·음표 연출
 ├─ native/
 │   ├─ loopback/      # Discord 제외 캡처 헬퍼 소스 (Rust)
 │   └─ bin/win32-x64/ # 빌드된 헬퍼 exe
-├─ assets/pet/        # 캐릭터 이미지 (idle.png는 자리표시용 샘플)
+├─ assets/pet/        # 캐릭터 그림 idle / listen / beat
 └─ audio-test/        # 1단계 오디오 캡처 확인용 (확인 후 삭제 예정)
 ```
 
