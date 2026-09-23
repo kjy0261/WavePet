@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, desktopCapturer } = require('electron');
 const path = require('path');
 
 // 왼쪽 파형 + 오른쪽 펫이 들어가는 가로형 위젯 크기
@@ -55,6 +55,12 @@ function buildMenuTemplate() {
   const visible = !!mainWindow && mainWindow.isVisible();
   return [
     { label: visible ? 'WavePet 숨기기' : 'WavePet 보이기', click: toggleWindowVisible },
+    {
+      label: '오디오 다시 연결',
+      click: () => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('audio:reconnect');
+      },
+    },
     { type: 'separator' },
     { label: '종료', click: () => app.quit() },
   ];
@@ -80,7 +86,22 @@ function createTray() {
   });
 }
 
+// 렌더러의 getDisplayMedia() 요청에 선택 창 없이 주 화면 + 시스템 소리(loopback)로
+// 응답한다. 영상은 쓰지 않지만 getDisplayMedia가 요구해서 함께 넘긴다.
+function allowLoopbackAudioCapture() {
+  session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+    desktopCapturer
+      .getSources({ types: ['screen'], thumbnailSize: { width: 0, height: 0 } })
+      .then((sources) => callback({ video: sources[0], audio: 'loopback' }))
+      .catch((err) => {
+        console.error('[wavepet] 화면 소스 조회 실패:', err);
+        callback({});
+      });
+  });
+}
+
 app.whenReady().then(() => {
+  allowLoopbackAudioCapture();
   createWindow();
   createTray();
 
