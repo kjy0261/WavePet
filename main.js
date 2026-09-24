@@ -391,6 +391,30 @@ ipcMain.on('settings:set-pet-size', (event, value) => {
   saveSettingsSoon();
   sendToRenderer('settings:pet-size', currentPetSize());
 });
+// 캐릭터 애니메이션 {interval: 까딱 간격(초), tilt: 좌우 기울기(도), bob: 통통 높이(%), notes: 음표}
+const DEFAULT_ANIMATION = { interval: 0.9, tilt: 0, bob: 2.5, notes: true };
+const ANIMATION_RANGES = { interval: [0.4, 2], tilt: [0, 10], bob: [0, 8] };
+
+function currentAnimation() {
+  const saved = settings.animation || {};
+  const anim = { ...DEFAULT_ANIMATION };
+  for (const [key, [min, max]] of Object.entries(ANIMATION_RANGES)) {
+    const value = Number(saved[key]);
+    if (Number.isFinite(value)) anim[key] = Math.min(max, Math.max(min, value));
+  }
+  if (typeof saved.notes === 'boolean') anim.notes = saved.notes;
+  return anim;
+}
+
+ipcMain.handle('settings:get-animation', () => currentAnimation());
+ipcMain.on('settings:set-animation', (event, anim) => {
+  if (!anim || typeof anim !== 'object') return;
+  settings.animation = { ...(settings.animation || {}), ...anim };
+  settings.animation = currentAnimation(); // 범위를 벗어난 값은 잘라서 저장
+  saveSettingsSoon();
+  sendToRenderer('settings:animation', settings.animation);
+});
+
 ipcMain.on('settings:set-background', (event, bg) => {
   const clean = sanitizeBackground(bg);
   if (!clean) return;
@@ -408,8 +432,9 @@ function openSettingsWindow() {
   }
   settingsWindow = new BrowserWindow({
     width: 380,
-    height: 648,
-    useContentSize: true, // 창 테두리/제목줄을 뺀 안쪽 크기 (설정 내용 약 380×635px)
+    // 설정 내용 전체 높이(약 950px)를 보여 주되, 화면이 작으면 화면에 맞추고 창 안에서 스크롤
+    height: Math.min(960, screen.getPrimaryDisplay().workAreaSize.height - 60),
+    useContentSize: true, // 창 테두리/제목줄을 뺀 안쪽 크기
     title: 'WavePet 설정',
     resizable: false,
     minimizable: false,

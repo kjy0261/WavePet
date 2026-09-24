@@ -91,6 +91,45 @@ petSizeInput.addEventListener('input', () => {
 });
 window.petAPI.getPetSize().then(renderPetSize);
 
+// ---- 애니메이션 ----
+
+const DEFAULT_ANIMATION = { interval: 0.9, tilt: 0, bob: 2.5, notes: true };
+const animInputs = {
+  interval: document.getElementById('anim-interval'),
+  tilt: document.getElementById('anim-tilt'),
+  bob: document.getElementById('anim-bob'),
+};
+const animLabels = {
+  interval: (v) => `${v.toFixed(1)}초`,
+  tilt: (v) => `${v}°`,
+  bob: (v) => `${v}%`,
+};
+const animNotes = document.getElementById('anim-notes');
+
+function renderAnimation(anim) {
+  for (const [key, input] of Object.entries(animInputs)) {
+    input.value = anim[key];
+    document.getElementById(`anim-${key}-value`).textContent = animLabels[key](anim[key]);
+  }
+  animNotes.checked = anim.notes;
+}
+
+function readAnimation() {
+  const anim = { notes: animNotes.checked };
+  for (const [key, input] of Object.entries(animInputs)) anim[key] = Number(input.value);
+  return anim;
+}
+
+function sendAnimation(anim) {
+  renderAnimation(anim);
+  window.petAPI.setAnimation(anim);
+}
+
+for (const input of Object.values(animInputs)) input.addEventListener('input', () => sendAnimation(readAnimation()));
+animNotes.addEventListener('change', () => sendAnimation(readAnimation()));
+document.getElementById('anim-reset').addEventListener('click', () => sendAnimation({ ...DEFAULT_ANIMATION }));
+window.petAPI.getAnimation().then(renderAnimation);
+
 // ---- 배경 ----
 
 window.petAPI.getBackground().then((saved) => {

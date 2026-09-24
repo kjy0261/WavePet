@@ -62,7 +62,23 @@
       color: #e8ebf0;
       cursor: pointer;
     }
-    button#reset:hover { background: #343a46; }
+    button#reset:hover, button.plain:hover { background: #343a46; }
+    button.plain {
+      font: inherit;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #3a404c;
+      background: #2a2f39;
+      color: #e8ebf0;
+      cursor: pointer;
+    }
+    .sub { font-weight: 400; font-size: 11px; color: #8a93a3; margin-left: 4px; }
+    .value {
+      font-variant-numeric: tabular-nums;
+      color: #c3c9d4;
+      min-width: 44px;
+    }
+    label.check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
     h1 {
       margin: 0 0 12px;
       font-size: 14px;
@@ -170,6 +186,34 @@
     </div>
   </section>
   <div class="hint">노래를 들을 때는 '왼쪽'과 '오른쪽' 그림을 번갈아 보여 주며 고개를 까딱입니다.<br />투명 배경 PNG, 정사각형(512×512 권장)에 모든 그림의 캐릭터 위치를 똑같이 맞추면 자연스럽습니다.</div>
+
+  <hr />
+  <h1>애니메이션 <span class="sub">(노래 들을 때)</span></h1>
+  <section>
+    <h2>까딱 간격</h2>
+    <div class="row">
+      <input id="anim-interval" type="range" min="0.4" max="2" step="0.1" />
+      <span class="value" id="anim-interval-value"></span>
+    </div>
+  </section>
+  <section>
+    <h2>좌우 기울기 <span class="sub">0이면 안 기울어짐</span></h2>
+    <div class="row">
+      <input id="anim-tilt" type="range" min="0" max="10" step="0.5" />
+      <span class="value" id="anim-tilt-value"></span>
+    </div>
+  </section>
+  <section>
+    <h2>통통 높이 <span class="sub">0이면 안 튐</span></h2>
+    <div class="row">
+      <input id="anim-bob" type="range" min="0" max="8" step="0.5" />
+      <span class="value" id="anim-bob-value"></span>
+    </div>
+  </section>
+  <section>
+    <label class="check"><input id="anim-notes" type="checkbox" /> 박자에 맞춰 ♪ 음표 띄우기</label>
+  </section>
+  <button id="anim-reset" class="plain">애니메이션 기본값으로</button>
 
   <hr />
   <h1>배경</h1>

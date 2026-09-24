@@ -1,8 +1,10 @@
 // 캐릭터 상태와 연출 (그림 세 장: idle, left, right)
 //  - idle: 가만히 (idle 그림)
-//  - listening: 고개를 까딱까딱. NOD_INTERVAL_MS마다 일정한 리듬으로 left/right 그림을 번갈아
-//    보여 주고, 바뀔 때마다 살짝 올라갔다 내려온다(#pet-body.bob). 몸을 좌우로 기울이지는 않는다.
+//  - listening: 고개를 까딱까딱. 일정한 간격으로 left/right 그림을 번갈아 보여 주고,
+//    그때마다 몸을 좌우로 기울이고(#pet[data-tilt]) 살짝 올라갔다 내려온다(#pet-body.bob).
 //    left/right 그림을 못 쓰면 idle 그림을 그대로 보여 준다.
+//  - 애니메이션(설정 창, setAnimation): 까딱 간격, 좌우 기울기 각도(0이면 안 기울어짐),
+//    통통 높이(0이면 안 튐), ♪ 음표 켜기/끄기
 //  - 크기: 설정 창에서 60~120% (setSize). 캐릭터 칸 폭과 맞춤 높이가 함께 커지고 작아진다.
 //    몇 박자에 한 번 머리 위로 ♪가 떠오름
 //
@@ -24,7 +26,7 @@ const Pet = (() => {
   const LISTEN_AFTER_MS = 500;
   const IDLE_AFTER_MS = 2000;
   const NOTE_EVERY_BEATS = 4;
-  const NOD_INTERVAL_MS = 900; // 한쪽으로 까딱하는 간격 (좌→우 한 번 왕복이 1.8초)
+  const DEFAULT_ANIMATION = { interval: 0.9, tilt: 0, bob: 2.5, notes: true };
   const NOTES = ['♪', '♫', '♩'];
   const FIT_RATIO = 0.94; // 칸 가장자리에 여유를 조금 남김
   const BASE_BOX_WIDTH = 104; // 크기 100%일 때 캐릭터 칸 폭(px)
@@ -54,6 +56,7 @@ const Pet = (() => {
     let faces = {};
     let fitBounds = FULL_BOUNDS; // 모든 표정의 그려진 영역을 합친 것
     let size = 1; // 캐릭터 크기 배율 (설정 창)
+    let animation = { ...DEFAULT_ANIMATION };
 
     // 합친 그려진 영역이 칸 가운데에 FIT_RATIO만큼 차도록 그림 크기와 위치를 정한다
     function placeSprite(img) {
@@ -71,7 +74,9 @@ const Pet = (() => {
       img.style.left = `${(boxW - drawnW * scale) / 2 - fitBounds.x0 * natW * scale}px`;
       img.style.top = `${top - fitBounds.y0 * natH * scale}px`;
       // 통통은 발(그려진 영역 아래 끝)을 축으로, 음표는 머리 위에서
-      bodyEl.style.transformOrigin = `50% ${top + drawnH * scale}px`;
+      const origin = `50% ${top + drawnH * scale}px`; // 기울기/통통은 발을 축으로
+      bodyEl.style.transformOrigin = origin;
+      petEl.style.transformOrigin = origin;
       petEl.style.setProperty('--drawn-top', `${top}px`);
     }
 
@@ -136,6 +141,16 @@ const Pet = (() => {
       setFace(faces[nodSide] ? nodSide : 'idle');
     }
 
+    // {interval: 초, tilt: 도, bob: %, notes: bool}
+    function setAnimation(value) {
+      animation = { ...DEFAULT_ANIMATION, ...value };
+      petEl.style.setProperty('--tilt', `${animation.tilt}deg`);
+      petEl.style.setProperty('--bob', `${animation.bob}%`);
+      // 기울어지는 시간은 까딱 간격보다 조금 짧게 (다음 까딱 전에 다 넘어가도록)
+      petEl.style.setProperty('--tilt-duration', `${Math.round(Math.min(550, animation.interval * 600))}ms`);
+      bodyEl.style.setProperty('--bob-duration', `${Math.round(Math.min(600, animation.interval * 650))}ms`);
+    }
+
     function setSize(value) {
       size = value;
       petEl.style.width = `${BASE_BOX_WIDTH * size}px`;
@@ -156,7 +171,8 @@ const Pet = (() => {
       lastNodAt = now;
       nodSide = nodSide === 'left' ? 'right' : 'left';
       showCurrentFace();
-      bob();
+      petEl.dataset.tilt = nodSide;
+      if (animation.bob > 0) bob();
     }
 
     function spawnNote() {
@@ -173,8 +189,12 @@ const Pet = (() => {
       if (listening === value) return;
       listening = value;
       petEl.classList.toggle('listening', value);
-      if (value) nod(performance.now()); // 듣기 시작하면 바로 첫 까딱
-      else setFace('idle');
+      if (value) {
+        nod(performance.now()); // 듣기 시작하면 바로 첫 까딱
+      } else {
+        delete petEl.dataset.tilt;
+        setFace('idle');
+      }
     }
 
     function update({ loudness, beat }, now) {
@@ -190,8 +210,8 @@ const Pet = (() => {
       }
 
       if (!listening) return;
-      if (now - lastNodAt >= NOD_INTERVAL_MS) nod(now);
-      if (beat) {
+      if (now - lastNodAt >= animation.interval * 1000) nod(now);
+      if (beat && animation.notes) {
         beatCount++;
         if (beatCount % NOTE_EVERY_BEATS === 0) spawnNote();
       }
@@ -202,6 +222,7 @@ const Pet = (() => {
       setFaces,
       relayout,
       setSize,
+      setAnimation,
       setMediaPlaying(value) {
         mediaPlaying = value;
         if (value !== null) setListening(value); // 다음 프레임을 기다리지 않고 바로

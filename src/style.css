@@ -112,6 +112,21 @@ html, body {
   width: 104px;
   align-self: stretch;
   pointer-events: none; /* 투명 여백이 겹친 ••• 버튼 등을 가리지 않게 */
+  /* 애니메이션 설정(pet.js setAnimation)이 덮어씀 */
+  --tilt: 0deg;
+  --bob: 2.5%;
+  --tilt-duration: 550ms;
+  /* 까딱할 때 천천히 시작해서 천천히 멈추며 기울도록 */
+  transition: transform var(--tilt-duration) cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+/* 고개 까딱: 좌우로 기울기 (pet.js가 data-tilt를 번갈아 바꿈, 각도 0이면 안 기울어짐) */
+#pet[data-tilt='left'] {
+  transform: rotate(calc(var(--tilt) * -1));
+}
+
+#pet[data-tilt='right'] {
+  transform: rotate(var(--tilt));
 }
 
 #pet-body {
@@ -137,12 +152,12 @@ html, body {
 /* 까딱할 때(left/right 그림이 바뀔 때) 살짝 올라갔다 부드럽게 내려오기 */
 @keyframes pet-bob {
   0% { transform: translateY(0) scale(1, 1); }
-  40% { transform: translateY(-2.5%) scale(0.995, 1.01); }
+  40% { transform: translateY(calc(var(--bob) * -1)) scale(0.995, 1.01); }
   100% { transform: translateY(0) scale(1, 1); }
 }
 
 #pet-body.bob {
-  animation: pet-bob 600ms cubic-bezier(0.45, 0, 0.55, 1);
+  animation: pet-bob var(--bob-duration, 600ms) cubic-bezier(0.45, 0, 0.55, 1);
 }
 
 /* 머리 위로 떠오르며 사라지는 음표 */
