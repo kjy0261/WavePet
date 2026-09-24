@@ -117,6 +117,45 @@ npm run audio-test # 오디오 캡처 확인용 테스트 창
 | 5 | 스피커 ↔ 이어폰/블루투스 전환 | 전환 후에도 계속 잡힘 | 끊기면 장치 전환 시 재연결 로직이 필요 |
 | 6 | 작업 관리자에서 CPU 확인 | 몇 % 이내 | 테스트 창은 화면 영상도 함께 캡처하므로 다소 높을 수 있음 |
 
+## 배포 (Windows 설치 파일)
+
+### 자동 빌드 (추천)
+
+버전을 올리고 `v`로 시작하는 태그를 푸시하면 GitHub Actions가 Windows에서 설치 파일을 만들어
+**Releases**에 올립니다.
+
+```bash
+# package.json의 "version"을 올린 뒤 (예: 0.1.0 → 0.2.0)
+git commit -am "Release v0.2.0"
+git tag v0.2.0
+git push origin main --tags
+```
+
+- 결과물: `WavePet-Setup-<버전>.exe` (GitHub 저장소 → Releases)
+- 태그 없이 만들어 보기: 저장소 → Actions → **Build Windows Installer** → Run workflow → 끝나면 Artifacts에서 받기
+
+### 내 PC에서 빌드
+
+```bash
+npm install
+npm run build:win   # dist/WavePet-Setup-<버전>.exe
+```
+
+### 설치 파일에 들어가는 것
+
+- 앱 코드(`main.js`, `preload.js`, `src/`), 그림(`assets/`), 헬퍼 exe(`native/bin/`)만 넣습니다.
+  `audio-test/`, 헬퍼 Rust 소스 등은 빠집니다.
+- 헬퍼 exe는 압축 파일(app.asar) 안에서는 실행할 수 없으므로 `app.asar.unpacked`에 따로 풀어 둡니다.
+- 설치 프로그램: 설치 위치 선택 가능, 바탕화면·시작 메뉴 바로가기 생성, 사용자 계정에만 설치(관리자 권한 불필요).
+
+### 알아 둘 것
+
+- **서명되지 않은 앱**이라 처음 실행할 때 Windows SmartScreen이 "Windows의 PC 보호" 경고를 띄울 수 있습니다.
+  **추가 정보 → 실행**을 누르면 됩니다. 없애려면 코드 서명 인증서를 구입해 서명해야 합니다.
+- 한 번에 하나만 실행됩니다. 이미 켜져 있는데 다시 실행하면 기존 위젯이 보입니다.
+- 우클릭 메뉴의 **Windows 시작 시 자동 실행**으로 켜 둘 수 있습니다(설치본에서만).
+- 설정과 사용자가 고른 그림은 `%APPDATA%\WavePet`에 저장되어, 앱을 다시 설치해도 유지됩니다.
+
 ## 폴더 구조
 
 ```
@@ -140,7 +179,10 @@ WavePet/
 │   ├─ loopback/      # Discord 제외 캡처 헬퍼 소스 (Rust)
 │   ├─ media/         # 곡 정보 읽기 + 재생 조작 헬퍼 소스 (Rust)
 │   └─ bin/win32-x64/ # 빌드된 헬퍼 exe
-├─ assets/pet/        # 캐릭터 그림 idle / left / right
+├─ assets/
+│   ├─ icon.png       # 앱 아이콘 (256×256)
+│   └─ pet/           # 캐릭터 그림 idle / left / right
+├─ .github/workflows/ # 태그를 푸시하면 Windows 설치 파일을 빌드해 Releases에 올림
 └─ audio-test/        # 1단계 오디오 캡처 확인용 (확인 후 삭제 예정)
 ```
 
@@ -150,4 +192,4 @@ WavePet/
 2. 파형: 루프백 캡처를 본 앱에 연결하고, 로그 스케일 + 가운데 배치 + attack/release 보간 적용 ✅
 3. **캐릭터: 음악이 나오면 left/right로 고개 까딱, 조용하면 `idle`** ← 현재
 4. 편의 기능: 휠 크기 조절, 캐릭터 이미지 교체, 파형 색/막대 수/배경 패널 설정 저장
-5. Windows 설치 파일 빌드
+5. Windows 설치 파일 빌드 ✅ (`npm run build:win`, 태그 푸시 시 자동)

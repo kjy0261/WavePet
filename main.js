@@ -4,6 +4,10 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const { pathToFileURL } = require('url');
 
+// 한 번에 하나만 실행 (두 번 켜면 헬퍼도 두 개씩 떠서 부담이 커지므로, 이미 켜져 있으면 그 창을 보여 줌)
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) app.quit();
+
 // 음악 플레이어 카드 크기 (제목/파형/캐릭터 + 진행 바 + 버튼)
 // 위젯 크기 100%일 때. 설정 창의 '위젯 크기'(uiScale)만큼 창을 키우고 renderer가 카드를 같은 비율로 확대한다.
 const WINDOW_WIDTH = 360;
@@ -472,6 +476,7 @@ function openSettingsWindow() {
     height: Math.min(1040, screen.getPrimaryDisplay().workAreaSize.height - 60),
     useContentSize: true, // 창 테두리/제목줄을 뺀 안쪽 크기
     title: 'WavePet 설정',
+    icon: path.join(__dirname, 'assets', 'icon.png'),
     resizable: false,
     minimizable: false,
     maximizable: false,
@@ -578,6 +583,7 @@ function buildMenuTemplate() {
       ],
     },
     { label: '설정 (배경 · 캐릭터)...', click: openSettingsWindow },
+    autoStartMenuItem(),
     {
       label: '오디오 다시 연결',
       click: () => sendToRenderer('audio:reconnect'),
@@ -635,7 +641,28 @@ function allowLoopbackAudioCapture() {
   });
 }
 
+// Windows 시작 시 자동 실행. 설치본에서만 켤 수 있다 (개발 중 npm start로 켜면 electron.exe가 등록되므로).
+function autoStartMenuItem() {
+  if (!app.isPackaged) {
+    return { label: 'Windows 시작 시 자동 실행 (설치본에서만)', type: 'checkbox', checked: false, enabled: false };
+  }
+  return {
+    label: 'Windows 시작 시 자동 실행',
+    type: 'checkbox',
+    checked: app.getLoginItemSettings().openAtLogin,
+    click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked }),
+  };
+}
+
+// 이미 켜져 있는데 한 번 더 실행하면 기존 위젯을 보여 준다
+app.on('second-instance', () => {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.show();
+  mainWindow.focus();
+});
+
 app.whenReady().then(() => {
+  if (!gotSingleInstanceLock) return;
   allowLoopbackAudioCapture();
   createWindow();
   createTray();

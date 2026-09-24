@@ -6,11 +6,48 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "audio-test": "electron audio-test/main.js"
+    "audio-test": "electron audio-test/main.js",
+    "build:win": "electron-builder --win --publish never"
   },
-  "author": "",
+  "author": "kjy0261",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^31.0.0"
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.wavepet.app",
+    "productName": "WavePet",
+    "copyright": "Copyright © 2026 kjy0261",
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "assets/**/*",
+      "native/bin/**/*"
+    ],
+    "asarUnpack": [
+      "native/bin/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "WavePet",
+      "artifactName": "WavePet-Setup-${version}.exe"
+    }
   }
 }
