@@ -1,8 +1,9 @@
 // 캐릭터 상태와 연출
 //  - idle: 가만히 ('노래 멈출 때' 그림)
-//  - listening: 고개를 까딱까딱. 까딱할 때마다 left/right 그림을 번갈아 보여 주고 살짝 통통 튄다.
-//    left/right 그림이 없으면 '노래 나올 때' 그림을 좌우로 기울여(#pet[data-tilt]) 대신한다.
-//    까딱은 박자(킥 드럼)에 맞추되, 박자가 잘 안 잡히면 NOD_AUTO_MS 간격으로 알아서 한다.
+//  - listening: 고개를 까딱까딱. NOD_INTERVAL_MS마다 일정한 리듬으로 좌우를 오가며
+//    left/right 그림으로 크로스페이드하고, 기울어지는 동안 살짝 올라갔다 내려온다(#pet-body.bob).
+//    기울기는 CSS transition으로 천천히 넘어간다(#pet[data-tilt]). left/right 그림이 없으면
+//    '노래 나올 때' 그림을 조금 더 크게 기울여 대신한다(#pet.no-lr).
 //    몇 박자에 한 번 머리 위로 ♪가 떠오름
 //
 // 전환 기준
@@ -19,8 +20,7 @@ const Pet = (() => {
   const LISTEN_AFTER_MS = 500;
   const IDLE_AFTER_MS = 2000;
   const NOTE_EVERY_BEATS = 4;
-  const NOD_MIN_MS = 320; // 박자가 너무 촘촘해도 이보다 빨리 까딱이지 않음
-  const NOD_AUTO_MS = 650; // 박자가 이만큼 안 오면 알아서 까딱
+  const NOD_INTERVAL_MS = 900; // 한쪽으로 까딱하는 간격 (좌→우 한 번 왕복이 1.8초)
   const NOTES = ['♪', '♫', '♩'];
   // main.js가 실제 경로(사용자가 고른 그림 포함)를 알려 주기 전까지 쓰는 기본 그림
   const DEFAULT_FACES = {
@@ -28,7 +28,13 @@ const Pet = (() => {
     listen: '../assets/pet/listen.png',
   };
 
-  function create(petEl, spriteEl) {
+  function create(petEl) {
+    const bodyEl = petEl.querySelector('#pet-body');
+    const sprites = [...bodyEl.querySelectorAll('.pet-sprite')];
+    let front = 0; // 지금 보이는 그림 (sprites[front])
+    let swapToken = 0;
+    sprites[0].classList.add('shown');
+
     let listening = false;
     let loudSince = null; // 소리가 계속 나기 시작한 시각
     let quietSince = null; // 조용함이 계속되기 시작한 시각
@@ -39,9 +45,22 @@ const Pet = (() => {
 
     let faces = {};
 
+    // 뒤쪽 그림에 새 표정을 읽어 둔 뒤 앞뒤를 바꿔 크로스페이드
     function setFace(name) {
       const src = faces[name];
-      if (src && spriteEl.getAttribute('src') !== src) spriteEl.setAttribute('src', src);
+      if (!src || sprites[front].getAttribute('src') === src) return;
+      const token = ++swapToken;
+      const back = sprites[1 - front];
+      if (back.getAttribute('src') !== src) back.setAttribute('src', src);
+      back
+        .decode()
+        .catch(() => {})
+        .then(() => {
+          if (token !== swapToken) return; // 그 사이 다른 표정으로 바뀜
+          back.classList.add('shown');
+          sprites[front].classList.remove('shown');
+          front = 1 - front;
+        });
     }
 
     // 미리 읽어 두어 표정이 바뀔 때 깜빡이지 않게 하고, 못 읽은 표정은 idle로 대체
@@ -62,25 +81,22 @@ const Pet = (() => {
 
     setFaces(DEFAULT_FACES);
 
-    function hop() {
+    function bob() {
       // 애니메이션이 끝나기 전에 다음 까딱이 와도 처음부터 다시 재생
-      spriteEl.classList.remove('hop');
-      void spriteEl.offsetWidth;
-      spriteEl.classList.add('hop');
+      bodyEl.classList.remove('bob');
+      void bodyEl.offsetWidth;
+      bodyEl.classList.add('bob');
     }
 
-    // 고개 까딱: 반대쪽으로 기울이고 살짝 통통
+    // 고개 까딱: 반대쪽으로 천천히 기울며 살짝 올라갔다 내려온다
     function nod(now) {
       lastNodAt = now;
       nodSide = nodSide === 'left' ? 'right' : 'left';
-      if (faces[nodSide]) {
-        setFace(nodSide);
-        delete petEl.dataset.tilt;
-      } else {
-        setFace('listen');
-        petEl.dataset.tilt = nodSide;
-      }
-      hop();
+      const hasImage = !!faces[nodSide];
+      petEl.classList.toggle('no-lr', !hasImage); // 그림이 없으면 기울기를 더 크게
+      setFace(hasImage ? nodSide : 'listen');
+      petEl.dataset.tilt = nodSide;
+      bob();
     }
 
     function spawnNote() {
@@ -114,7 +130,7 @@ const Pet = (() => {
       }
 
       if (!listening) return;
-      if ((beat && now - lastNodAt >= NOD_MIN_MS) || now - lastNodAt >= NOD_AUTO_MS) nod(now);
+      if (now - lastNodAt >= NOD_INTERVAL_MS) nod(now);
       if (beat) {
         beatCount++;
         if (beatCount % NOTE_EVERY_BEATS === 0) spawnNote();

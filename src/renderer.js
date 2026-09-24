@@ -1,7 +1,6 @@
 const stage = document.getElementById('stage');
 const waveCanvas = document.getElementById('wave');
 const petEl = document.getElementById('pet');
-const sprite = document.getElementById('pet-sprite');
 
 const BAR_COUNT = 40;
 const FRAME_INTERVAL_MS = 1000 / 30; // 켜 두는 위젯이라 30fps로 제한
@@ -9,7 +8,7 @@ const FRAME_INTERVAL_MS = 1000 / 30; // 켜 두는 위젯이라 30fps로 제한
 const visualizer = Visualizer.create(waveCanvas);
 const spectrum = Spectrum.create(BAR_COUNT);
 const beatDetector = BeatDetector.create();
-const pet = Pet.create(petEl, sprite);
+const pet = Pet.create(petEl);
 const $ = (id) => document.getElementById(id);
 const player = Player.create(
   {

@@ -20,7 +20,11 @@
         <canvas id="wave"></canvas>
       </div>
       <div id="pet">
-        <img id="pet-sprite" src="../assets/pet/idle.png" alt="WavePet" draggable="false" />
+        <!-- 그림 두 장을 겹쳐 두고 표정이 바뀔 때 서로 크로스페이드한다 (pet.js) -->
+        <div id="pet-body">
+          <img class="pet-sprite" src="../assets/pet/idle.png" alt="WavePet" draggable="false" />
+          <img class="pet-sprite" alt="" draggable="false" />
+        </div>
       </div>
     </div>
 
