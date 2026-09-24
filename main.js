@@ -246,16 +246,54 @@ function facePath(slot) {
   return fs.existsSync(bundled) ? bundled : null;
 }
 
+// 그림에서 실제로 그려진(투명하지 않은) 영역을 그림 크기에 대한 비율 {x0, y0, x1, y1}로 잰다.
+// 여백이 제각각인 그림도 캐릭터 칸에 딱 맞게 배치하려고 쓴다(pet.js). 못 재면 null(그림 전체로 취급).
+const BOUNDS_SAMPLE_WIDTH = 128; // 작게 줄여서 재도 배치에는 충분
+const ALPHA_THRESHOLD = 16;
+const boundsCache = new Map();
+
+function faceBounds(file) {
+  const key = `${file}|${fs.statSync(file).mtimeMs}`;
+  if (boundsCache.has(key)) return boundsCache.get(key);
+  let bounds = null;
+  try {
+    let image = nativeImage.createFromPath(file); // PNG/JPG (GIF/WebP는 비어 있음 → null)
+    if (!image.isEmpty()) {
+      if (image.getSize().width > BOUNDS_SAMPLE_WIDTH) image = image.resize({ width: BOUNDS_SAMPLE_WIDTH });
+      const { width, height } = image.getSize();
+      const pixels = image.toBitmap(); // 픽셀당 4바이트, 4번째가 알파
+      let x0 = width, y0 = height, x1 = -1, y1 = -1;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (pixels[(y * width + x) * 4 + 3] > ALPHA_THRESHOLD) {
+            if (x < x0) x0 = x;
+            if (x > x1) x1 = x;
+            if (y < y0) y0 = y;
+            if (y > y1) y1 = y;
+          }
+        }
+      }
+      if (x1 >= x0) bounds = { x0: x0 / width, y0: y0 / height, x1: (x1 + 1) / width, y1: (y1 + 1) / height };
+    }
+  } catch (err) {
+    // 못 읽으면 그림 전체로 배치
+  }
+  boundsCache.set(key, bounds);
+  return bounds;
+}
+
 function getFaces() {
   const urls = {};
   const custom = {};
+  const bounds = {};
   for (const slot of FACE_SLOTS) {
     const file = facePath(slot);
     // 같은 이름으로 다시 바꿔도 새로 읽도록 수정 시각을 붙임
     urls[slot] = file ? `${pathToFileURL(file).href}?t=${fs.statSync(file).mtimeMs}` : null;
     custom[slot] = !!customFacePath(slot);
+    bounds[slot] = file ? faceBounds(file) : null;
   }
-  return { urls, custom };
+  return { urls, custom, bounds };
 }
 
 function broadcastFaces() {

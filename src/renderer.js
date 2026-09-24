@@ -31,8 +31,9 @@ window.petAPI.onNowPlaying((info) => {
 $('more').addEventListener('click', () => window.petAPI.showContextMenu());
 
 // 캐릭터 그림 (설정 창에서 바꿀 수 있음)
-window.petAPI.getFaces().then(({ urls }) => pet.setFaces(urls));
-window.petAPI.onFaces(({ urls }) => pet.setFaces(urls));
+window.petAPI.getFaces().then(({ urls, bounds }) => pet.setFaces(urls, bounds));
+window.petAPI.onFaces(({ urls, bounds }) => pet.setFaces(urls, bounds));
+window.addEventListener('resize', () => pet.relayout());
 
 // 배경 색/투명도 (우클릭 메뉴 → 설정...)
 const applyBackground = (bg) => visualizer.setColor(Theme.apply(bg));

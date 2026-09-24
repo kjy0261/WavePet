@@ -104,16 +104,14 @@ html, body {
   margin-top: 4px;
 }
 
-/* 캐릭터 그림(512×512)은 캔버스 둘레에 투명 여백이 커서, 그림을 크게 그리고
-   여백만큼 음수 margin을 줘 실제 보이는 캐릭터가 윗부분 높이를 꽉 채우게 한다.
-   (여백 비율: 위 16% · 아래 20% · 왼쪽 24% · 오른쪽 31%, 128px 기준으로 계산) */
+/* 캐릭터 칸. 그림은 여백이 제각각이라 pet.js가 실제로 그려진 영역을 이 칸에 맞춰
+   크기/위치를 정한다(그림은 칸 밖 투명 여백까지 걸쳐 있을 수 있음). */
 #pet {
   position: relative;
   flex: none;
-  height: 128px;
-  margin: -20px -36px -26px -28px;
-  align-self: center;
-  transform-origin: 50% 80%; /* 기울기는 발(그림 아래쪽 80% 지점)을 축으로 */
+  width: 104px;
+  align-self: stretch;
+  transform-origin: 50% 90%; /* 기울기는 발을 축으로 (pet.js가 정확한 위치로 덮어씀) */
   /* 까딱할 때 천천히 시작해서 천천히 멈추며 넘어가도록 */
   transition: transform 550ms cubic-bezier(0.45, 0, 0.55, 1);
   --tilt: 1.5deg; /* left/right 그림이 있을 때: 그림이 기울기를 담당하고 몸은 살짝만 */
@@ -134,25 +132,19 @@ html, body {
 }
 
 #pet-body {
-  position: relative;
-  height: 100%;
-  transform-origin: 50% 80%; /* 통통은 발을 축으로 */
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 90%; /* 통통은 발을 축으로 (pet.js가 덮어씀) */
 }
 
 /* 그림 두 장을 겹쳐 두고 .shown인 쪽만 보이게. 새 그림을 뒤에서 다 읽은 다음 한 번에 바꿔
    중간에 흐려지거나 깜빡이지 않게 한다. */
 .pet-sprite {
-  height: 100%;
-  width: auto;
+  position: absolute;
+  max-width: none;
   display: block;
   -webkit-user-drag: none;
   opacity: 0;
-}
-
-.pet-sprite + .pet-sprite {
-  position: absolute;
-  left: 0;
-  top: 0;
 }
 
 .pet-sprite.shown {
@@ -179,7 +171,7 @@ html, body {
 
 .note {
   position: absolute;
-  top: 14%;
+  top: var(--drawn-top, 0);
   color: var(--fg);
   font-size: 16px;
   pointer-events: none;
