@@ -34,13 +34,9 @@ $('more').addEventListener('click', () => window.petAPI.showContextMenu());
 window.petAPI.getFaces().then(({ urls, bounds }) => pet.setFaces(urls, bounds));
 window.petAPI.onFaces(({ urls, bounds }) => pet.setFaces(urls, bounds));
 window.addEventListener('resize', () => pet.relayout());
-// 위젯 전체 크기 (설정 창 → 위젯 크기)
-function applyUiScale(scale) {
-  document.documentElement.style.setProperty('--ui-scale', scale);
-  visualizer.setScale(scale);
-}
-window.petAPI.getUiScale().then(applyUiScale);
-window.petAPI.onUiScale(applyUiScale);
+// 위젯 전체 크기 (설정 창 → 위젯 크기): main.js가 페이지 확대로 처리하고, 그러면 화면 배율
+// (devicePixelRatio)이 바뀐다. 캐릭터는 배율이 바뀌면 스스로 다시 준비하지만 확실히 하려고 알려 준다.
+window.petAPI.onUiScale(() => pet.relayout());
 window.petAPI.getPetSize().then((size) => pet.setSize(size));
 window.petAPI.onPetSize((size) => pet.setSize(size));
 window.petAPI.getAnimation().then((anim) => pet.setAnimation(anim));

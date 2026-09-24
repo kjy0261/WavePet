@@ -7,11 +7,10 @@ const Visualizer = (() => {
 
   function create(canvas, { color = '#ffffff' } = {}) {
     let barColor = color;
-    let extraScale = 1; // 위젯이 확대된 만큼 더 촘촘하게 그려 흐려지지 않게
     const ctx = canvas.getContext('2d');
 
     function fitToDisplay() {
-      const dpr = (window.devicePixelRatio || 1) * extraScale;
+      const dpr = window.devicePixelRatio || 1; // 위젯 크기(페이지 확대)도 여기에 포함됨
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
       if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
@@ -43,9 +42,6 @@ const Visualizer = (() => {
       draw,
       setColor(newColor) {
         barColor = newColor;
-      },
-      setScale(scale) {
-        extraScale = scale;
       },
     };
   }
