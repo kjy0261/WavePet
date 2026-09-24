@@ -1,9 +1,9 @@
-// 캐릭터 상태와 연출
-//  - idle: 가만히 ('노래 멈출 때' 그림)
-//  - listening: 고개를 까딱까딱. NOD_INTERVAL_MS마다 일정한 리듬으로 좌우를 오가며
-//    left/right 그림으로 바꾸고, 기울어지는 동안 살짝 올라갔다 내려온다(#pet-body.bob).
-//    기울기는 CSS transition으로 천천히 넘어간다(#pet[data-tilt]). left/right 그림이 없으면
-//    '노래 나올 때' 그림을 조금 더 크게 기울여 대신한다(#pet.no-lr).
+// 캐릭터 상태와 연출 (그림 세 장: idle, left, right)
+//  - idle: 가만히 (idle 그림)
+//  - listening: 고개를 까딱까딱. NOD_INTERVAL_MS마다 일정한 리듬으로 left/right 그림을 번갈아
+//    보여 주고, 기울어지는 동안 살짝 올라갔다 내려온다(#pet-body.bob). 몸 기울기는 CSS
+//    transition으로 천천히 넘어간다(#pet[data-tilt]). left/right 그림을 못 쓰면 idle 그림을
+//    조금 더 크게 기울여 대신한다(#pet.no-lr).
 //    몇 박자에 한 번 머리 위로 ♪가 떠오름
 //
 // 전환 기준
@@ -13,7 +13,7 @@
 //     - idle → listening: 소리(loudness > LISTEN_ON)가 LISTEN_AFTER_MS 동안 이어질 때
 //     - listening → idle: 조용함(loudness < QUIET_BELOW)이 IDLE_AFTER_MS 동안 이어질 때
 //     - QUIET_BELOW를 LISTEN_ON보다 낮게 두어 경계 음량에서 흔들리지 않게 함
-// 그림은 설정 창에서 바꿀 수 있다(setFaces). listen 그림을 못 읽으면 idle 그림으로 대신 보여 준다.
+// 그림은 설정 창에서 바꿀 수 있다(setFaces). left/right 그림을 못 읽으면 idle 그림을 기울여 대신한다.
 //
 // 배치: 그림마다 여백이 달라도 캐릭터 칸(#pet)에 딱 맞도록, main.js가 잰 '실제로 그려진 영역'
 // (bounds)을 모든 표정에 걸쳐 합친 뒤 그 영역이 칸 안에 들어오게 크기와 위치를 정한다.
@@ -31,7 +31,8 @@ const Pet = (() => {
   // main.js가 실제 경로(사용자가 고른 그림 포함)를 알려 주기 전까지 쓰는 기본 그림
   const DEFAULT_FACES = {
     idle: '../assets/pet/idle.png',
-    listen: '../assets/pet/listen.png',
+    left: '../assets/pet/left.png',
+    right: '../assets/pet/right.png',
   };
 
   function create(petEl) {
@@ -118,12 +119,23 @@ const Pet = (() => {
         const img = new Image();
         img.onerror = () => {
           if (faces[name] !== src) return; // 그 사이 다른 그림으로 바뀜
-          faces[name] = faces.idle;
-          setFace(listening ? 'listen' : 'idle');
+          faces[name] = null; // 못 쓰는 그림 (left/right면 idle을 기울여 대신)
+          showCurrentFace();
         };
         img.src = src;
       }
-      setFace(listening ? 'listen' : 'idle');
+      showCurrentFace();
+    }
+
+    // 지금 상태에 맞는 그림: 듣는 중이면 마지막으로 기운 쪽(left/right), 아니면 idle
+    function showCurrentFace() {
+      if (!listening) {
+        setFace('idle');
+        return;
+      }
+      const hasImage = !!faces[nodSide];
+      petEl.classList.toggle('no-lr', !hasImage);
+      setFace(hasImage ? nodSide : 'idle');
     }
 
     setFaces(DEFAULT_FACES);
@@ -139,9 +151,7 @@ const Pet = (() => {
     function nod(now) {
       lastNodAt = now;
       nodSide = nodSide === 'left' ? 'right' : 'left';
-      const hasImage = !!faces[nodSide];
-      petEl.classList.toggle('no-lr', !hasImage); // 그림이 없으면 기울기를 더 크게
-      setFace(hasImage ? nodSide : 'listen');
+      showCurrentFace(); // left/right 그림이 없으면 idle 그림을 더 크게 기울여 대신
       petEl.dataset.tilt = nodSide;
       bob();
     }
@@ -161,7 +171,8 @@ const Pet = (() => {
       listening = value;
       petEl.classList.toggle('listening', value);
       delete petEl.dataset.tilt;
-      setFace(value ? 'listen' : 'idle');
+      if (value) nod(performance.now()); // 듣기 시작하면 바로 첫 까딱
+      else setFace('idle');
     }
 
     function update({ loudness, beat }, now) {

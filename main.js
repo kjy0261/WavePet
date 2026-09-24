@@ -219,17 +219,27 @@ function stopMediaHelper() {
 // ---- 캐릭터 그림 (설정 창에서 바꾸기) ----
 // 사용자가 고른 그림은 userData/pet에 복사해 두어(원본을 옮기거나 지워도 유지) 기본 그림보다 우선한다.
 
-// idle: 노래 멈출 때, listen: 노래 나올 때, left/right: 노래 나올 때 고개 까딱(왼쪽/오른쪽으로 기운 모습)
-// left/right는 기본 그림이 없어도 된다(없으면 listen 그림을 기울여 대신함).
-const FACE_SLOTS = ['idle', 'listen', 'left', 'right'];
+// idle: 노래 안 들을 때, left/right: 노래 들을 때 번갈아 보여 주는 고개 까딱(왼쪽/오른쪽으로 기운 모습)
+// left/right 그림을 못 쓰면 idle 그림을 기울여 대신한다(pet.js).
+const FACE_SLOTS = ['idle', 'left', 'right'];
 const FACE_LABELS = {
-  idle: '노래 멈출 때',
-  listen: '노래 나올 때',
-  left: '까딱 왼쪽',
-  right: '까딱 오른쪽',
+  idle: '노래 안 들을 때',
+  left: '들을 때 · 왼쪽',
+  right: '들을 때 · 오른쪽',
 };
 const bundledPetDir = path.join(__dirname, 'assets', 'pet');
 const customPetDir = path.join(app.getPath('userData'), 'pet');
+
+// 예전 버전의 '노래 나올 때(listen)' 그림은 이제 안 쓰므로 복사해 둔 파일과 설정을 정리
+if (settings.faces && settings.faces.listen) {
+  try {
+    fs.unlinkSync(path.join(customPetDir, path.basename(settings.faces.listen)));
+  } catch (err) {
+    // 이미 없으면 그만
+  }
+  delete settings.faces.listen;
+  saveSettings();
+}
 
 function customFacePath(slot) {
   const name = settings.faces && settings.faces[slot];
@@ -380,9 +390,9 @@ function openSettingsWindow() {
     return;
   }
   settingsWindow = new BrowserWindow({
-    width: 440,
+    width: 380,
     height: 590,
-    useContentSize: true, // 창 테두리/제목줄을 뺀 안쪽 크기 (설정 내용 약 440×580px)
+    useContentSize: true, // 창 테두리/제목줄을 뺀 안쪽 크기 (설정 내용 약 380×575px)
     title: 'WavePet 설정',
     resizable: false,
     minimizable: false,

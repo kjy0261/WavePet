@@ -75,7 +75,7 @@
     }
     #faces {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 8px;
     }
     .face {
@@ -131,40 +131,32 @@
 <body>
   <h1>캐릭터</h1>
   <div id="faces">
-    <div class="face" data-slot="listen">
-      <span class="face-label">노래 나올 때</span>
-      <div class="preview"><img alt="노래 나올 때 이미지" /><span class="none">없음<br />기울여 대신</span></div>
-      <div class="buttons">
-        <button class="pick">바꾸기</button>
-        <button class="reset">기본</button>
-      </div>
-    </div>
     <div class="face" data-slot="idle">
-      <span class="face-label">노래 멈출 때</span>
-      <div class="preview"><img alt="노래 멈출 때 이미지" /><span class="none">없음<br />기울여 대신</span></div>
+      <span class="face-label">노래 안 들을 때</span>
+      <div class="preview"><img alt="노래 안 들을 때 이미지" /><span class="none">없음<br />기울여 대신</span></div>
       <div class="buttons">
         <button class="pick">바꾸기</button>
         <button class="reset">기본</button>
       </div>
     </div>
     <div class="face" data-slot="left">
-      <span class="face-label">까딱 왼쪽</span>
-      <div class="preview"><img alt="까딱 왼쪽 이미지" /><span class="none">없음<br />기울여 대신</span></div>
+      <span class="face-label">들을 때 · 왼쪽</span>
+      <div class="preview"><img alt="들을 때 왼쪽 이미지" /><span class="none">없음<br />기울여 대신</span></div>
       <div class="buttons">
         <button class="pick">바꾸기</button>
         <button class="reset">기본</button>
       </div>
     </div>
     <div class="face" data-slot="right">
-      <span class="face-label">까딱 오른쪽</span>
-      <div class="preview"><img alt="까딱 오른쪽 이미지" /><span class="none">없음<br />기울여 대신</span></div>
+      <span class="face-label">들을 때 · 오른쪽</span>
+      <div class="preview"><img alt="들을 때 오른쪽 이미지" /><span class="none">없음<br />기울여 대신</span></div>
       <div class="buttons">
         <button class="pick">바꾸기</button>
         <button class="reset">기본</button>
       </div>
     </div>
   </div>
-  <div class="hint">노래가 나오면 '까딱 왼쪽/오른쪽'을 번갈아 보여 주며 고개를 까딱입니다. 없으면 '노래 나올 때' 그림을 기울여 대신합니다.<br />투명 배경 PNG, 정사각형(512×512 권장)에 모든 그림의 캐릭터 위치를 똑같이 맞추면 자연스럽습니다.</div>
+  <div class="hint">노래를 들을 때는 '왼쪽'과 '오른쪽' 그림을 번갈아 보여 주며 고개를 까딱입니다. 그림이 없으면 '노래 안 들을 때' 그림을 기울여 대신합니다.<br />투명 배경 PNG, 정사각형(512×512 권장)에 모든 그림의 캐릭터 위치를 똑같이 맞추면 자연스럽습니다.</div>
 
   <hr />
   <h1>배경</h1>

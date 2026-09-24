@@ -20,7 +20,7 @@ contextBridge.exposeInMainWorld('petAPI', {
   setBackground: (bg) => ipcRenderer.send('settings:set-background', bg),
   onBackground: (callback) => ipcRenderer.on('settings:background', (_event, bg) => callback(bg)),
 
-  // 캐릭터 그림 {urls, custom, bounds}: 각각 slot('idle' | 'listen' | 'left' | 'right')별 값.
+  // 캐릭터 그림 {urls, custom, bounds}: 각각 slot('idle' | 'left' | 'right')별 값.
   // bounds는 그림에서 실제로 그려진 영역 비율 {x0, y0, x1, y1} (없으면 null)
   getFaces: () => ipcRenderer.invoke('pet:get-faces'),
   pickFace: (slot) => ipcRenderer.invoke('pet:pick-face', slot),
