@@ -10,7 +10,7 @@
 //     - idle → listening: 소리(loudness > LISTEN_ON)가 LISTEN_AFTER_MS 동안 이어질 때
 //     - listening → idle: 조용함(loudness < QUIET_BELOW)이 IDLE_AFTER_MS 동안 이어질 때
 //     - QUIET_BELOW를 LISTEN_ON보다 낮게 두어 경계 음량에서 흔들리지 않게 함
-// listen.png가 없거나 못 읽으면 idle.png로 대신 보여 준다.
+// 그림은 설정 창에서 바꿀 수 있다(setFaces). listen 그림을 못 읽으면 idle 그림으로 대신 보여 준다.
 const Pet = (() => {
   const LISTEN_ON = 0.12; // 이보다 크면 '소리 남'
   const QUIET_BELOW = 0.06; // 이보다 작으면 '조용함'
@@ -18,7 +18,8 @@ const Pet = (() => {
   const IDLE_AFTER_MS = 2000;
   const NOTE_EVERY_BEATS = 4;
   const NOTES = ['♪', '♫', '♩'];
-  const FACE_FILES = {
+  // main.js가 실제 경로(사용자가 고른 그림 포함)를 알려 주기 전까지 쓰는 기본 그림
+  const DEFAULT_FACES = {
     idle: '../assets/pet/idle.png',
     listen: '../assets/pet/listen.png',
   };
@@ -30,20 +31,29 @@ const Pet = (() => {
     let beatCount = 0;
     let mediaPlaying = null; // true/false: 미디어 정보의 재생 상태, null: 정보 없음
 
-    // 미리 읽어 두어 표정이 바뀔 때 깜빡이지 않게 하고, 못 읽은 표정은 idle로 대체
-    const faces = { ...FACE_FILES };
-    for (const [name, src] of Object.entries(FACE_FILES)) {
-      const img = new Image();
-      img.onerror = () => {
-        faces[name] = FACE_FILES.idle;
-      };
-      img.src = src;
-    }
+    let faces = {};
 
     function setFace(name) {
       const src = faces[name];
-      if (spriteEl.getAttribute('src') !== src) spriteEl.setAttribute('src', src);
+      if (src && spriteEl.getAttribute('src') !== src) spriteEl.setAttribute('src', src);
     }
+
+    // 미리 읽어 두어 표정이 바뀔 때 깜빡이지 않게 하고, 못 읽은 표정은 idle로 대체
+    function setFaces(urls) {
+      faces = { ...urls };
+      for (const [name, src] of Object.entries(urls)) {
+        const img = new Image();
+        img.onerror = () => {
+          if (faces[name] !== src) return; // 그 사이 다른 그림으로 바뀜
+          faces[name] = faces.idle;
+          setFace(listening ? 'listen' : 'idle');
+        };
+        img.src = src;
+      }
+      setFace(listening ? 'listen' : 'idle');
+    }
+
+    setFaces(DEFAULT_FACES);
 
     function spawnNote() {
       const note = document.createElement('span');
@@ -82,6 +92,7 @@ const Pet = (() => {
 
     return {
       update,
+      setFaces,
       setMediaPlaying(value) {
         mediaPlaying = value;
         if (value !== null) setListening(value); // 다음 프레임을 기다리지 않고 바로

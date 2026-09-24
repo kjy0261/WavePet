@@ -31,7 +31,11 @@ window.petAPI.onNowPlaying((info) => {
 });
 $('more').addEventListener('click', () => window.petAPI.showContextMenu());
 
-// 배경 색/투명도 (우클릭 메뉴 → 배경 설정...)
+// 캐릭터 그림 (설정 창에서 바꿀 수 있음)
+window.petAPI.getFaces().then(({ urls }) => pet.setFaces(urls));
+window.petAPI.onFaces(({ urls }) => pet.setFaces(urls));
+
+// 배경 색/투명도 (우클릭 메뉴 → 설정...)
 const applyBackground = (bg) => visualizer.setColor(Theme.apply(bg));
 window.petAPI.getBackground().then(applyBackground);
 window.petAPI.onBackground(applyBackground);

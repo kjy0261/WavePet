@@ -19,4 +19,10 @@ contextBridge.exposeInMainWorld('petAPI', {
   getBackground: () => ipcRenderer.invoke('settings:get-background'),
   setBackground: (bg) => ipcRenderer.send('settings:set-background', bg),
   onBackground: (callback) => ipcRenderer.on('settings:background', (_event, bg) => callback(bg)),
+
+  // 캐릭터 그림 {urls: {idle, listen}, custom: {idle, listen}}. slot: 'idle' | 'listen'
+  getFaces: () => ipcRenderer.invoke('pet:get-faces'),
+  pickFace: (slot) => ipcRenderer.invoke('pet:pick-face', slot),
+  resetFace: (slot) => ipcRenderer.invoke('pet:reset-face', slot),
+  onFaces: (callback) => ipcRenderer.on('pet:faces', (_event, faces) => callback(faces)),
 });

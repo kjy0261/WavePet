@@ -2,8 +2,8 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';" />
-  <title>WavePet 배경 설정</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' file:; style-src 'self' 'unsafe-inline';" />
+  <title>WavePet 설정</title>
   <style>
     body {
       margin: 0;
@@ -64,9 +64,78 @@
       cursor: pointer;
     }
     button#reset:hover { background: #343a46; }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #333945;
+      margin: 18px 0 16px;
+    }
+    #faces {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .face {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 8px;
+      border-radius: 10px;
+      background: #262b34;
+    }
+    .face-label { font-size: 12px; color: #c3c9d4; }
+    .face img {
+      width: 84px;
+      height: 84px;
+      object-fit: contain;
+      border-radius: 8px;
+      background: #3b414e;
+    }
+    .face .buttons { display: flex; gap: 6px; }
+    .face button {
+      white-space: nowrap;
+      font: 12px 'Segoe UI', 'Malgun Gothic', sans-serif;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #3a404c;
+      background: #2f3540;
+      color: #e8ebf0;
+      cursor: pointer;
+    }
+    .face button:hover { background: #3a4150; }
+    .face button:disabled { opacity: 0.4; cursor: default; }
+    .hint { margin-top: 8px; font-size: 11px; color: #8a93a3; line-height: 1.5; }
   </style>
 </head>
 <body>
+  <h1>캐릭터</h1>
+  <div id="faces">
+    <div class="face" data-slot="listen">
+      <span class="face-label">노래 나올 때</span>
+      <img alt="노래 나올 때 이미지" />
+      <div class="buttons">
+        <button class="pick">바꾸기</button>
+        <button class="reset">기본</button>
+      </div>
+    </div>
+    <div class="face" data-slot="idle">
+      <span class="face-label">노래 멈출 때</span>
+      <img alt="노래 멈출 때 이미지" />
+      <div class="buttons">
+        <button class="pick">바꾸기</button>
+        <button class="reset">기본</button>
+      </div>
+    </div>
+  </div>
+  <div class="hint">투명 배경 PNG, 정사각형(512×512 권장)에 두 그림의 캐릭터 위치를 똑같이 맞추면 자연스럽습니다.</div>
+
+  <hr />
+  <h1>배경</h1>
   <section>
     <h2>빠른 선택</h2>
     <div id="presets"></div>
@@ -85,7 +154,7 @@
       <span id="opacity-value"></span>
     </div>
   </section>
-  <button id="reset">기본값으로</button>
+  <button id="reset">배경 기본값으로</button>
   <script src="settings.js"></script>
 </body>
 </html>

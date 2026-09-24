@@ -1,13 +1,13 @@
-const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, desktopCapturer } = require('electron');
+const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, desktopCapturer, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const { pathToFileURL } = require('url');
 
 // 음악 플레이어 카드 크기 (제목/파형/캐릭터 + 진행 바 + 버튼)
 const WINDOW_WIDTH = 360;
 const WINDOW_HEIGHT = 176;
 
-const petIconPath = path.join(__dirname, 'assets', 'pet', 'idle.png');
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 
 // 소리 가져오는 방식
@@ -216,6 +216,87 @@ function stopMediaHelper() {
   }, 1000);
 }
 
+// ---- 캐릭터 그림 (설정 창에서 바꾸기) ----
+// 사용자가 고른 그림은 userData/pet에 복사해 두어(원본을 옮기거나 지워도 유지) 기본 그림보다 우선한다.
+
+const FACE_SLOTS = ['idle', 'listen']; // idle: 노래 멈출 때, listen: 노래 나올 때
+const bundledPetDir = path.join(__dirname, 'assets', 'pet');
+const customPetDir = path.join(app.getPath('userData'), 'pet');
+
+function customFacePath(slot) {
+  const name = settings.faces && settings.faces[slot];
+  if (!name) return null;
+  const file = path.join(customPetDir, path.basename(name));
+  return fs.existsSync(file) ? file : null;
+}
+
+function facePath(slot) {
+  return customFacePath(slot) || path.join(bundledPetDir, `${slot}.png`);
+}
+
+function getFaces() {
+  const urls = {};
+  const custom = {};
+  for (const slot of FACE_SLOTS) {
+    const file = facePath(slot);
+    // 같은 이름으로 다시 바꿔도 새로 읽도록 수정 시각을 붙임
+    urls[slot] = `${pathToFileURL(file).href}?t=${fs.statSync(file).mtimeMs}`;
+    custom[slot] = !!customFacePath(slot);
+  }
+  return { urls, custom };
+}
+
+function broadcastFaces() {
+  const faces = getFaces();
+  sendToRenderer('pet:faces', faces);
+  if (settingsWindow && !settingsWindow.isDestroyed()) settingsWindow.webContents.send('pet:faces', faces);
+  updateTrayIcon();
+}
+
+function removeCustomFace(slot) {
+  const file = customFacePath(slot);
+  if (file) {
+    try {
+      fs.unlinkSync(file);
+    } catch (err) {
+      // 지우지 못해도 설정에서 빼면 기본 그림을 쓴다
+    }
+  }
+  if (settings.faces) delete settings.faces[slot];
+}
+
+ipcMain.handle('pet:get-faces', () => getFaces());
+
+ipcMain.handle('pet:pick-face', async (event, slot) => {
+  if (!FACE_SLOTS.includes(slot)) return getFaces();
+  const owner = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showOpenDialog(owner, {
+    title: slot === 'listen' ? '노래 나올 때 이미지 선택' : '노래 멈출 때 이미지 선택',
+    filters: [{ name: '이미지', extensions: ['png', 'gif', 'webp', 'jpg', 'jpeg'] }],
+    properties: ['openFile'],
+  });
+  if (result.canceled || !result.filePaths[0]) return getFaces();
+
+  removeCustomFace(slot);
+  fs.mkdirSync(customPetDir, { recursive: true });
+  const ext = path.extname(result.filePaths[0]).toLowerCase() || '.png';
+  const name = `${slot}-${Date.now()}${ext}`;
+  fs.copyFileSync(result.filePaths[0], path.join(customPetDir, name));
+  settings.faces = { ...(settings.faces || {}), [slot]: name };
+  saveSettings();
+  broadcastFaces();
+  return getFaces();
+});
+
+ipcMain.handle('pet:reset-face', (event, slot) => {
+  if (FACE_SLOTS.includes(slot)) {
+    removeCustomFace(slot);
+    saveSettings();
+    broadcastFaces();
+  }
+  return getFaces();
+});
+
 // ---- 배경 설정 ----
 
 const DEFAULT_BACKGROUND = { color: '#3b414e', opacity: 0.8 };
@@ -250,8 +331,9 @@ function openSettingsWindow() {
   }
   settingsWindow = new BrowserWindow({
     width: 320,
-    height: 300,
-    title: 'WavePet 배경 설정',
+    height: 570,
+    useContentSize: true, // 창 테두리/제목줄을 뺀 안쪽 크기 (설정 내용 높이 약 560px)
+    title: 'WavePet 설정',
     resizable: false,
     minimizable: false,
     maximizable: false,
@@ -358,7 +440,7 @@ function buildMenuTemplate() {
         { label: audioStatusLabel(), enabled: false },
       ],
     },
-    { label: '배경 설정...', click: openSettingsWindow },
+    { label: '설정 (배경 · 캐릭터)...', click: openSettingsWindow },
     {
       label: '오디오 다시 연결',
       click: () => sendToRenderer('audio:reconnect'),
@@ -379,8 +461,22 @@ ipcMain.on('pet:move-by', (event, dx, dy) => {
   mainWindow.setPosition(Math.round(x + Number(dx || 0)), Math.round(y + Number(dy || 0)));
 });
 
+function trayImage() {
+  return nativeImage.createFromPath(facePath('idle')).resize({ width: 32, height: 32 });
+}
+
+// 노래 멈출 때 그림을 바꾸면 트레이 아이콘도 따라 바꾼다
+function updateTrayIcon() {
+  if (!tray) return;
+  try {
+    tray.setImage(trayImage());
+  } catch (err) {
+    // 못 읽는 그림이면 이전 아이콘 유지
+  }
+}
+
 function createTray() {
-  tray = new Tray(nativeImage.createFromPath(petIconPath).resize({ width: 32, height: 32 }));
+  tray = new Tray(trayImage());
   tray.setToolTip('WavePet: 클릭 보이기/숨기기, 우클릭 메뉴');
   tray.on('click', toggleWindowVisible);
   tray.on('right-click', () => {

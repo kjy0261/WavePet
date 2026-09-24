@@ -1,4 +1,4 @@
-// 배경 설정 창: 색(빠른 선택 / 색상 선택기)과 불투명도를 바꾸면 바로 위젯에 반영된다.
+// 설정 창: 캐릭터 그림(노래 나올 때 / 멈출 때)과 배경 색·불투명도. 바꾸면 바로 위젯에 반영된다.
 const DEFAULT_BACKGROUND = { color: '#3b414e', opacity: 0.8 };
 const PRESETS = [
   { name: '그레이 글래스 (기본)', color: '#3b414e' },
@@ -47,6 +47,31 @@ for (const preset of PRESETS) {
 colorInput.addEventListener('input', () => update({ color: colorInput.value.toLowerCase() }));
 opacityInput.addEventListener('input', () => update({ opacity: Number(opacityInput.value) / 100 }));
 document.getElementById('reset').addEventListener('click', () => update({ ...DEFAULT_BACKGROUND }));
+
+// ---- 캐릭터 그림 ----
+
+function renderFaces({ urls, custom }) {
+  for (const box of document.querySelectorAll('.face')) {
+    const slot = box.dataset.slot;
+    box.querySelector('img').src = urls[slot];
+    box.querySelector('.reset').disabled = !custom[slot]; // 이미 기본 그림이면 비활성
+  }
+}
+
+for (const box of document.querySelectorAll('.face')) {
+  const slot = box.dataset.slot;
+  box.querySelector('.pick').addEventListener('click', async () => {
+    renderFaces(await window.petAPI.pickFace(slot));
+  });
+  box.querySelector('.reset').addEventListener('click', async () => {
+    renderFaces(await window.petAPI.resetFace(slot));
+  });
+}
+
+window.petAPI.getFaces().then(renderFaces);
+window.petAPI.onFaces(renderFaces);
+
+// ---- 배경 ----
 
 window.petAPI.getBackground().then((saved) => {
   bg = { ...saved };
