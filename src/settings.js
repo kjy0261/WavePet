@@ -53,7 +53,10 @@ document.getElementById('reset').addEventListener('click', () => update({ ...DEF
 function renderFaces({ urls, custom }) {
   for (const box of document.querySelectorAll('.face')) {
     const slot = box.dataset.slot;
-    box.querySelector('img').src = urls[slot];
+    const img = box.querySelector('img');
+    if (urls[slot]) img.src = urls[slot];
+    else img.removeAttribute('src');
+    box.querySelector('.preview').classList.toggle('empty', !urls[slot]); // left/right는 없을 수 있음
     box.querySelector('.reset').disabled = !custom[slot]; // 이미 기본 그림이면 비활성
   }
 }

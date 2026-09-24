@@ -21,9 +21,8 @@
     }
     section { margin-bottom: 16px; }
     #presets {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 8px;
+      display: flex;
+      gap: 10px;
     }
     .swatch {
       width: 28px;
@@ -76,31 +75,48 @@
     }
     #faces {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
     }
     .face {
+      min-width: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 6px;
-      padding: 10px 8px;
+      padding: 8px 4px;
       border-radius: 10px;
       background: #262b34;
     }
     .face-label { font-size: 12px; color: #c3c9d4; }
-    .face img {
-      width: 84px;
-      height: 84px;
-      object-fit: contain;
+    .preview {
+      width: 76px;
+      height: 76px;
       border-radius: 8px;
       background: #3b414e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .face .buttons { display: flex; gap: 6px; }
+    .preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .preview .none {
+      display: none;
+      font-size: 11px;
+      line-height: 1.4;
+      text-align: center;
+      color: #8a93a3;
+    }
+    .preview.empty img { display: none; }
+    .preview.empty .none { display: block; }
+    .face .buttons { display: flex; gap: 4px; }
     .face button {
       white-space: nowrap;
-      font: 12px 'Segoe UI', 'Malgun Gothic', sans-serif;
-      padding: 4px 8px;
+      font: 11px 'Segoe UI', 'Malgun Gothic', sans-serif;
+      padding: 2px 6px;
       border-radius: 6px;
       border: 1px solid #3a404c;
       background: #2f3540;
@@ -117,7 +133,7 @@
   <div id="faces">
     <div class="face" data-slot="listen">
       <span class="face-label">노래 나올 때</span>
-      <img alt="노래 나올 때 이미지" />
+      <div class="preview"><img alt="노래 나올 때 이미지" /><span class="none">없음<br />기울여 대신</span></div>
       <div class="buttons">
         <button class="pick">바꾸기</button>
         <button class="reset">기본</button>
@@ -125,14 +141,30 @@
     </div>
     <div class="face" data-slot="idle">
       <span class="face-label">노래 멈출 때</span>
-      <img alt="노래 멈출 때 이미지" />
+      <div class="preview"><img alt="노래 멈출 때 이미지" /><span class="none">없음<br />기울여 대신</span></div>
+      <div class="buttons">
+        <button class="pick">바꾸기</button>
+        <button class="reset">기본</button>
+      </div>
+    </div>
+    <div class="face" data-slot="left">
+      <span class="face-label">까딱 왼쪽</span>
+      <div class="preview"><img alt="까딱 왼쪽 이미지" /><span class="none">없음<br />기울여 대신</span></div>
+      <div class="buttons">
+        <button class="pick">바꾸기</button>
+        <button class="reset">기본</button>
+      </div>
+    </div>
+    <div class="face" data-slot="right">
+      <span class="face-label">까딱 오른쪽</span>
+      <div class="preview"><img alt="까딱 오른쪽 이미지" /><span class="none">없음<br />기울여 대신</span></div>
       <div class="buttons">
         <button class="pick">바꾸기</button>
         <button class="reset">기본</button>
       </div>
     </div>
   </div>
-  <div class="hint">투명 배경 PNG, 정사각형(512×512 권장)에 두 그림의 캐릭터 위치를 똑같이 맞추면 자연스럽습니다.</div>
+  <div class="hint">노래가 나오면 '까딱 왼쪽/오른쪽'을 번갈아 보여 주며 고개를 까딱입니다. 없으면 '노래 나올 때' 그림을 기울여 대신합니다.<br />투명 배경 PNG, 정사각형(512×512 권장)에 모든 그림의 캐릭터 위치를 똑같이 맞추면 자연스럽습니다.</div>
 
   <hr />
   <h1>배경</h1>

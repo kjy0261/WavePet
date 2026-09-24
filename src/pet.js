@@ -1,6 +1,8 @@
 // 캐릭터 상태와 연출
-//  - idle(idle.png): 가만히
-//  - listening(listen.png): 좌우로 천천히 흔들림 (#pet.listening).
+//  - idle: 가만히 ('노래 멈출 때' 그림)
+//  - listening: 고개를 까딱까딱. 까딱할 때마다 left/right 그림을 번갈아 보여 주고 살짝 통통 튄다.
+//    left/right 그림이 없으면 '노래 나올 때' 그림을 좌우로 기울여(#pet[data-tilt]) 대신한다.
+//    까딱은 박자(킥 드럼)에 맞추되, 박자가 잘 안 잡히면 NOD_AUTO_MS 간격으로 알아서 한다.
 //    몇 박자에 한 번 머리 위로 ♪가 떠오름
 //
 // 전환 기준
@@ -17,6 +19,8 @@ const Pet = (() => {
   const LISTEN_AFTER_MS = 500;
   const IDLE_AFTER_MS = 2000;
   const NOTE_EVERY_BEATS = 4;
+  const NOD_MIN_MS = 320; // 박자가 너무 촘촘해도 이보다 빨리 까딱이지 않음
+  const NOD_AUTO_MS = 650; // 박자가 이만큼 안 오면 알아서 까딱
   const NOTES = ['♪', '♫', '♩'];
   // main.js가 실제 경로(사용자가 고른 그림 포함)를 알려 주기 전까지 쓰는 기본 그림
   const DEFAULT_FACES = {
@@ -30,6 +34,8 @@ const Pet = (() => {
     let quietSince = null; // 조용함이 계속되기 시작한 시각
     let beatCount = 0;
     let mediaPlaying = null; // true/false: 미디어 정보의 재생 상태, null: 정보 없음
+    let nodSide = 'right'; // 마지막으로 기운 쪽. 첫 까딱은 왼쪽
+    let lastNodAt = 0;
 
     let faces = {};
 
@@ -42,6 +48,7 @@ const Pet = (() => {
     function setFaces(urls) {
       faces = { ...urls };
       for (const [name, src] of Object.entries(urls)) {
+        if (!src) continue; // left/right는 없을 수 있음
         const img = new Image();
         img.onerror = () => {
           if (faces[name] !== src) return; // 그 사이 다른 그림으로 바뀜
@@ -54,6 +61,27 @@ const Pet = (() => {
     }
 
     setFaces(DEFAULT_FACES);
+
+    function hop() {
+      // 애니메이션이 끝나기 전에 다음 까딱이 와도 처음부터 다시 재생
+      spriteEl.classList.remove('hop');
+      void spriteEl.offsetWidth;
+      spriteEl.classList.add('hop');
+    }
+
+    // 고개 까딱: 반대쪽으로 기울이고 살짝 통통
+    function nod(now) {
+      lastNodAt = now;
+      nodSide = nodSide === 'left' ? 'right' : 'left';
+      if (faces[nodSide]) {
+        setFace(nodSide);
+        delete petEl.dataset.tilt;
+      } else {
+        setFace('listen');
+        petEl.dataset.tilt = nodSide;
+      }
+      hop();
+    }
 
     function spawnNote() {
       const note = document.createElement('span');
@@ -69,6 +97,7 @@ const Pet = (() => {
       if (listening === value) return;
       listening = value;
       petEl.classList.toggle('listening', value);
+      delete petEl.dataset.tilt;
       setFace(value ? 'listen' : 'idle');
     }
 
@@ -84,7 +113,9 @@ const Pet = (() => {
         setListening(false);
       }
 
-      if (beat && listening) {
+      if (!listening) return;
+      if ((beat && now - lastNodAt >= NOD_MIN_MS) || now - lastNodAt >= NOD_AUTO_MS) nod(now);
+      if (beat) {
         beatCount++;
         if (beatCount % NOTE_EVERY_BEATS === 0) spawnNote();
       }

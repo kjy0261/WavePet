@@ -219,7 +219,15 @@ function stopMediaHelper() {
 // ---- 캐릭터 그림 (설정 창에서 바꾸기) ----
 // 사용자가 고른 그림은 userData/pet에 복사해 두어(원본을 옮기거나 지워도 유지) 기본 그림보다 우선한다.
 
-const FACE_SLOTS = ['idle', 'listen']; // idle: 노래 멈출 때, listen: 노래 나올 때
+// idle: 노래 멈출 때, listen: 노래 나올 때, left/right: 노래 나올 때 고개 까딱(왼쪽/오른쪽으로 기운 모습)
+// left/right는 기본 그림이 없어도 된다(없으면 listen 그림을 기울여 대신함).
+const FACE_SLOTS = ['idle', 'listen', 'left', 'right'];
+const FACE_LABELS = {
+  idle: '노래 멈출 때',
+  listen: '노래 나올 때',
+  left: '까딱 왼쪽',
+  right: '까딱 오른쪽',
+};
 const bundledPetDir = path.join(__dirname, 'assets', 'pet');
 const customPetDir = path.join(app.getPath('userData'), 'pet');
 
@@ -230,8 +238,12 @@ function customFacePath(slot) {
   return fs.existsSync(file) ? file : null;
 }
 
+// 쓸 그림 파일. 사용자가 고른 것 → 기본 그림 → 없음(null)
 function facePath(slot) {
-  return customFacePath(slot) || path.join(bundledPetDir, `${slot}.png`);
+  const custom = customFacePath(slot);
+  if (custom) return custom;
+  const bundled = path.join(bundledPetDir, `${slot}.png`);
+  return fs.existsSync(bundled) ? bundled : null;
 }
 
 function getFaces() {
@@ -240,7 +252,7 @@ function getFaces() {
   for (const slot of FACE_SLOTS) {
     const file = facePath(slot);
     // 같은 이름으로 다시 바꿔도 새로 읽도록 수정 시각을 붙임
-    urls[slot] = `${pathToFileURL(file).href}?t=${fs.statSync(file).mtimeMs}`;
+    urls[slot] = file ? `${pathToFileURL(file).href}?t=${fs.statSync(file).mtimeMs}` : null;
     custom[slot] = !!customFacePath(slot);
   }
   return { urls, custom };
@@ -271,7 +283,7 @@ ipcMain.handle('pet:pick-face', async (event, slot) => {
   if (!FACE_SLOTS.includes(slot)) return getFaces();
   const owner = BrowserWindow.fromWebContents(event.sender);
   const result = await dialog.showOpenDialog(owner, {
-    title: slot === 'listen' ? '노래 나올 때 이미지 선택' : '노래 멈출 때 이미지 선택',
+    title: `${FACE_LABELS[slot]} 이미지 선택`,
     filters: [{ name: '이미지', extensions: ['png', 'gif', 'webp', 'jpg', 'jpeg'] }],
     properties: ['openFile'],
   });
@@ -330,9 +342,9 @@ function openSettingsWindow() {
     return;
   }
   settingsWindow = new BrowserWindow({
-    width: 320,
-    height: 570,
-    useContentSize: true, // 창 테두리/제목줄을 뺀 안쪽 크기 (설정 내용 높이 약 560px)
+    width: 440,
+    height: 590,
+    useContentSize: true, // 창 테두리/제목줄을 뺀 안쪽 크기 (설정 내용 약 440×580px)
     title: 'WavePet 설정',
     resizable: false,
     minimizable: false,

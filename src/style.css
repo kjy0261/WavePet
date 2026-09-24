@@ -113,7 +113,8 @@ html, body {
   height: 128px;
   margin: -20px -36px -26px -28px;
   align-self: center;
-  transform-origin: 50% 80%; /* 흔들림은 발(그림 아래쪽 80% 지점)을 축으로 */
+  transform-origin: 50% 80%; /* 기울기는 발(그림 아래쪽 80% 지점)을 축으로 */
+  transition: transform 140ms ease-out;
   pointer-events: none; /* 투명 여백이 겹친 ••• 버튼 등을 가리지 않게 */
 }
 
@@ -122,16 +123,28 @@ html, body {
   width: auto;
   display: block;
   -webkit-user-drag: none;
+  transform-origin: 50% 80%; /* 통통은 발을 축으로 */
 }
 
-/* listening: 음악이 나오는 동안 좌우로 천천히 흔들림 */
-@keyframes pet-sway {
-  0%, 100% { transform: rotate(-4deg); }
-  50% { transform: rotate(4deg); }
+/* 고개 까딱: left/right 그림이 없을 때 '노래 나올 때' 그림을 좌우로 기울여 대신 (pet.js) */
+#pet[data-tilt='left'] {
+  transform: rotate(-6deg);
 }
 
-#pet.listening {
-  animation: pet-sway 1.6s ease-in-out infinite;
+#pet[data-tilt='right'] {
+  transform: rotate(6deg);
+}
+
+/* 까딱할 때마다 아주 살짝 통통 튀기 */
+@keyframes pet-hop {
+  0% { transform: translateY(0) scale(1, 1); }
+  30% { transform: translateY(-3%) scale(0.99, 1.015); }
+  65% { transform: translateY(0) scale(1.015, 0.985); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+
+#pet-sprite.hop {
+  animation: pet-hop 220ms ease-out;
 }
 
 /* 머리 위로 떠오르며 사라지는 음표 */
