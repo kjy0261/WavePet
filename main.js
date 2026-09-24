@@ -5,8 +5,11 @@ const { spawn } = require('child_process');
 const { pathToFileURL } = require('url');
 
 // 음악 플레이어 카드 크기 (제목/파형/캐릭터 + 진행 바 + 버튼)
+// 위젯 크기 100%일 때. 설정 창의 '위젯 크기'(uiScale)만큼 창을 키우고 renderer가 카드를 같은 비율로 확대한다.
 const WINDOW_WIDTH = 360;
 const WINDOW_HEIGHT = 176;
+const DEFAULT_UI_SCALE = 1;
+const UI_SCALE_RANGE = [0.7, 1.6];
 
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 
@@ -384,6 +387,39 @@ function currentPetSize() {
   return Number.isFinite(size) ? Math.min(PET_SIZE_RANGE[1], Math.max(PET_SIZE_RANGE[0], size)) : DEFAULT_PET_SIZE;
 }
 
+// 위젯 전체 크기 배율
+function currentUiScale() {
+  const scale = Number(settings.uiScale);
+  return Number.isFinite(scale) ? Math.min(UI_SCALE_RANGE[1], Math.max(UI_SCALE_RANGE[0], scale)) : DEFAULT_UI_SCALE;
+}
+
+function windowSizeFor(scale) {
+  return { width: Math.round(WINDOW_WIDTH * scale), height: Math.round(WINDOW_HEIGHT * scale) };
+}
+
+// 오른쪽 아래 모서리를 고정한 채 창 크기를 바꾼다 (화면 구석에 둔 위젯이 밀려나지 않게)
+function applyUiScale() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const scale = currentUiScale();
+  const { width, height } = windowSizeFor(scale);
+  const bounds = mainWindow.getBounds();
+  mainWindow.setBounds({
+    x: bounds.x + bounds.width - width,
+    y: bounds.y + bounds.height - height,
+    width,
+    height,
+  });
+  sendToRenderer('settings:ui-scale', scale);
+}
+
+ipcMain.handle('settings:get-ui-scale', () => currentUiScale());
+ipcMain.on('settings:set-ui-scale', (event, value) => {
+  if (!Number.isFinite(Number(value))) return;
+  settings.uiScale = Number(value);
+  saveSettingsSoon();
+  applyUiScale();
+});
+
 ipcMain.handle('settings:get-pet-size', () => currentPetSize());
 ipcMain.on('settings:set-pet-size', (event, value) => {
   if (!Number.isFinite(Number(value))) return;
@@ -431,9 +467,9 @@ function openSettingsWindow() {
     return;
   }
   settingsWindow = new BrowserWindow({
-    width: 380,
-    // 설정 내용 전체 높이(약 950px)를 보여 주되, 화면이 작으면 화면에 맞추고 창 안에서 스크롤
-    height: Math.min(960, screen.getPrimaryDisplay().workAreaSize.height - 60),
+    width: 396, // 내용 380px + 세로 스크롤바 자리
+    // 설정 내용 전체 높이(약 1035px)를 보여 주되, 화면이 작으면 화면에 맞추고 창 안에서 스크롤
+    height: Math.min(1040, screen.getPrimaryDisplay().workAreaSize.height - 60),
     useContentSize: true, // 창 테두리/제목줄을 뺀 안쪽 크기
     title: 'WavePet 설정',
     resizable: false,
@@ -461,10 +497,9 @@ function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
   mainWindow = new BrowserWindow({
-    width: WINDOW_WIDTH,
-    height: WINDOW_HEIGHT,
-    x: width - WINDOW_WIDTH - 40,
-    y: height - WINDOW_HEIGHT - 40,
+    ...windowSizeFor(currentUiScale()),
+    x: width - windowSizeFor(currentUiScale()).width - 40,
+    y: height - windowSizeFor(currentUiScale()).height - 40,
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',

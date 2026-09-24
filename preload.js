@@ -20,6 +20,11 @@ contextBridge.exposeInMainWorld('petAPI', {
   setBackground: (bg) => ipcRenderer.send('settings:set-background', bg),
   onBackground: (callback) => ipcRenderer.on('settings:background', (_event, bg) => callback(bg)),
 
+  // 위젯 전체 크기 배율 (0.7~1.6)
+  getUiScale: () => ipcRenderer.invoke('settings:get-ui-scale'),
+  setUiScale: (scale) => ipcRenderer.send('settings:set-ui-scale', scale),
+  onUiScale: (callback) => ipcRenderer.on('settings:ui-scale', (_event, scale) => callback(scale)),
+
   // 캐릭터 크기 배율 (0.6~1.2)
   getPetSize: () => ipcRenderer.invoke('settings:get-pet-size'),
   setPetSize: (size) => ipcRenderer.send('settings:set-pet-size', size),

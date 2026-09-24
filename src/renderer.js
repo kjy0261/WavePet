@@ -34,6 +34,13 @@ $('more').addEventListener('click', () => window.petAPI.showContextMenu());
 window.petAPI.getFaces().then(({ urls, bounds }) => pet.setFaces(urls, bounds));
 window.petAPI.onFaces(({ urls, bounds }) => pet.setFaces(urls, bounds));
 window.addEventListener('resize', () => pet.relayout());
+// 위젯 전체 크기 (설정 창 → 위젯 크기)
+function applyUiScale(scale) {
+  document.documentElement.style.setProperty('--ui-scale', scale);
+  visualizer.setScale(scale);
+}
+window.petAPI.getUiScale().then(applyUiScale);
+window.petAPI.onUiScale(applyUiScale);
 window.petAPI.getPetSize().then((size) => pet.setSize(size));
 window.petAPI.onPetSize((size) => pet.setSize(size));
 window.petAPI.getAnimation().then((anim) => pet.setAnimation(anim));

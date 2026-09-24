@@ -74,6 +74,23 @@ for (const box of document.querySelectorAll('.face')) {
 window.petAPI.getFaces().then(renderFaces);
 window.petAPI.onFaces(renderFaces);
 
+// ---- 위젯 크기 ----
+
+const uiScaleInput = document.getElementById('ui-scale');
+const uiScaleValue = document.getElementById('ui-scale-value');
+
+function renderUiScale(scale) {
+  uiScaleInput.value = Math.round(scale * 100);
+  uiScaleValue.textContent = `${Math.round(scale * 100)}%`;
+}
+
+uiScaleInput.addEventListener('input', () => {
+  const scale = Number(uiScaleInput.value) / 100;
+  renderUiScale(scale);
+  window.petAPI.setUiScale(scale);
+});
+window.petAPI.getUiScale().then(renderUiScale);
+
 // ---- 캐릭터 크기 ----
 
 const petSizeInput = document.getElementById('pet-size');
