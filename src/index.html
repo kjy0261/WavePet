@@ -20,8 +20,11 @@
         <canvas id="wave"></canvas>
       </div>
       <div id="pet">
-        <!-- 캐릭터는 pet.js가 화면 픽셀에 맞춰 직접 그린다 (칸 둘레까지 걸쳐 그릴 수 있게 칸보다 큼) -->
-        <canvas id="pet-canvas"></canvas>
+        <!-- 그림 두 장을 겹쳐 두고 표정이 바뀔 때 서로 크로스페이드한다 (pet.js) -->
+        <div id="pet-body">
+          <img class="pet-sprite" src="../assets/pet/idle.png" alt="WavePet" draggable="false" />
+          <img class="pet-sprite" alt="" draggable="false" />
+        </div>
       </div>
     </div>
 

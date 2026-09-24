@@ -5,8 +5,7 @@ const { spawn } = require('child_process');
 const { pathToFileURL } = require('url');
 
 // 음악 플레이어 카드 크기 (제목/파형/캐릭터 + 진행 바 + 버튼)
-// 위젯 크기 100%일 때. 설정 창의 '위젯 크기'(uiScale)만큼 창을 키우고, 페이지 확대(zoom factor)로
-// 카드를 같은 비율로 키운다. 그림을 늘리는 게 아니라 그 배율로 새로 그리므로 글자·그림이 흐려지지 않는다.
+// 위젯 크기 100%일 때. 설정 창의 '위젯 크기'(uiScale)만큼 창을 키우고 renderer가 카드를 같은 비율로 확대한다.
 const WINDOW_WIDTH = 360;
 const WINDOW_HEIGHT = 176;
 const DEFAULT_UI_SCALE = 1;
@@ -410,7 +409,6 @@ function applyUiScale() {
     width,
     height,
   });
-  mainWindow.webContents.setZoomFactor(scale);
   sendToRenderer('settings:ui-scale', scale);
 }
 
@@ -484,8 +482,6 @@ function openSettingsWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      // 위젯 창과 세션을 나눠, 위젯 크기(페이지 확대)가 같은 출처인 설정 창까지 확대되지 않게
-      partition: 'settings-window',
     },
   });
   settingsWindow.setMenuBarVisibility(false);
@@ -526,10 +522,7 @@ function createWindow() {
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
   // 새로고침 등으로 렌더러가 다시 떠도 마지막 곡 정보를 다시 보내 줌
-  mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.setZoomFactor(currentUiScale()); // 위젯 크기
-    sendToRenderer('media:now-playing', nowPlaying);
-  });
+  mainWindow.webContents.on('did-finish-load', () => sendToRenderer('media:now-playing', nowPlaying));
 
   mainWindow.on('closed', () => {
     mainWindow = null;
