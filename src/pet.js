@@ -1,7 +1,7 @@
 // 캐릭터 상태와 연출
 //  - idle: 가만히 ('노래 멈출 때' 그림)
 //  - listening: 고개를 까딱까딱. NOD_INTERVAL_MS마다 일정한 리듬으로 좌우를 오가며
-//    left/right 그림으로 크로스페이드하고, 기울어지는 동안 살짝 올라갔다 내려온다(#pet-body.bob).
+//    left/right 그림으로 바꾸고, 기울어지는 동안 살짝 올라갔다 내려온다(#pet-body.bob).
 //    기울기는 CSS transition으로 천천히 넘어간다(#pet[data-tilt]). left/right 그림이 없으면
 //    '노래 나올 때' 그림을 조금 더 크게 기울여 대신한다(#pet.no-lr).
 //    몇 박자에 한 번 머리 위로 ♪가 떠오름
@@ -45,7 +45,7 @@ const Pet = (() => {
 
     let faces = {};
 
-    // 뒤쪽 그림에 새 표정을 읽어 둔 뒤 앞뒤를 바꿔 크로스페이드
+    // 뒤쪽 그림에 새 표정을 다 읽어 둔 뒤 앞뒤를 한 번에 바꿈 (빈 화면 깜빡임 없음)
     function setFace(name) {
       const src = faces[name];
       if (!src || sprites[front].getAttribute('src') === src) return;

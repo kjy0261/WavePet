@@ -139,14 +139,14 @@ html, body {
   transform-origin: 50% 80%; /* 통통은 발을 축으로 */
 }
 
-/* 그림 두 장을 겹쳐 두고 .shown인 쪽만 보이게. 바뀔 때 서로 크로스페이드 */
+/* 그림 두 장을 겹쳐 두고 .shown인 쪽만 보이게. 새 그림을 뒤에서 다 읽은 다음 한 번에 바꿔
+   중간에 흐려지거나 깜빡이지 않게 한다. */
 .pet-sprite {
   height: 100%;
   width: auto;
   display: block;
   -webkit-user-drag: none;
   opacity: 0;
-  transition: opacity 200ms ease-in-out;
 }
 
 .pet-sprite + .pet-sprite {
