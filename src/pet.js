@@ -1,9 +1,9 @@
 // 캐릭터 상태와 연출 (그림 세 장: idle, left, right)
 //  - idle: 가만히 (idle 그림)
 //  - listening: 고개를 까딱까딱. NOD_INTERVAL_MS마다 일정한 리듬으로 left/right 그림을 번갈아
-//    보여 주고, 기울어지는 동안 살짝 올라갔다 내려온다(#pet-body.bob). 몸 기울기는 CSS
-//    transition으로 천천히 넘어간다(#pet[data-tilt]). left/right 그림을 못 쓰면 idle 그림을
-//    조금 더 크게 기울여 대신한다(#pet.no-lr).
+//    보여 주고, 바뀔 때마다 살짝 올라갔다 내려온다(#pet-body.bob). 몸을 좌우로 기울이지는 않는다.
+//    left/right 그림을 못 쓰면 idle 그림을 그대로 보여 준다.
+//  - 크기: 설정 창에서 60~120% (setSize). 캐릭터 칸 폭과 맞춤 높이가 함께 커지고 작아진다.
 //    몇 박자에 한 번 머리 위로 ♪가 떠오름
 //
 // 전환 기준
@@ -26,7 +26,8 @@ const Pet = (() => {
   const NOTE_EVERY_BEATS = 4;
   const NOD_INTERVAL_MS = 900; // 한쪽으로 까딱하는 간격 (좌→우 한 번 왕복이 1.8초)
   const NOTES = ['♪', '♫', '♩'];
-  const FIT_RATIO = 0.94; // 칸 안에서 기울어질 여유를 조금 남김
+  const FIT_RATIO = 0.94; // 칸 가장자리에 여유를 조금 남김
+  const BASE_BOX_WIDTH = 104; // 크기 100%일 때 캐릭터 칸 폭(px)
   const FULL_BOUNDS = { x0: 0, y0: 0, x1: 1, y1: 1 };
   // main.js가 실제 경로(사용자가 고른 그림 포함)를 알려 주기 전까지 쓰는 기본 그림
   const DEFAULT_FACES = {
@@ -52,26 +53,25 @@ const Pet = (() => {
 
     let faces = {};
     let fitBounds = FULL_BOUNDS; // 모든 표정의 그려진 영역을 합친 것
+    let size = 1; // 캐릭터 크기 배율 (설정 창)
 
     // 합친 그려진 영역이 칸 가운데에 FIT_RATIO만큼 차도록 그림 크기와 위치를 정한다
     function placeSprite(img) {
       const boxW = petEl.clientWidth;
-      const boxH = petEl.clientHeight;
+      const boxH = petEl.clientHeight * size; // 100%보다 크면 칸 위아래로 조금 넘쳐도 됨
       const natW = img.naturalWidth;
       const natH = img.naturalHeight;
       if (!boxW || !boxH || !natW || !natH) return;
       const drawnW = (fitBounds.x1 - fitBounds.x0) * natW;
       const drawnH = (fitBounds.y1 - fitBounds.y0) * natH;
       const scale = Math.min((boxW * FIT_RATIO) / drawnW, (boxH * FIT_RATIO) / drawnH);
-      const top = (boxH - drawnH * scale) / 2; // 그려진 영역의 위쪽
+      const top = (petEl.clientHeight - drawnH * scale) / 2; // 그려진 영역의 위쪽 (칸 세로 가운데 기준)
       img.style.width = `${natW * scale}px`;
       img.style.height = `${natH * scale}px`;
       img.style.left = `${(boxW - drawnW * scale) / 2 - fitBounds.x0 * natW * scale}px`;
       img.style.top = `${top - fitBounds.y0 * natH * scale}px`;
-      // 기울기/통통은 발(그려진 영역 아래 끝)을 축으로, 음표는 머리 위에서
-      const origin = `50% ${top + drawnH * scale}px`;
-      petEl.style.transformOrigin = origin;
-      bodyEl.style.transformOrigin = origin;
+      // 통통은 발(그려진 영역 아래 끝)을 축으로, 음표는 머리 위에서
+      bodyEl.style.transformOrigin = `50% ${top + drawnH * scale}px`;
       petEl.style.setProperty('--drawn-top', `${top}px`);
     }
 
@@ -133,9 +133,13 @@ const Pet = (() => {
         setFace('idle');
         return;
       }
-      const hasImage = !!faces[nodSide];
-      petEl.classList.toggle('no-lr', !hasImage);
-      setFace(hasImage ? nodSide : 'idle');
+      setFace(faces[nodSide] ? nodSide : 'idle');
+    }
+
+    function setSize(value) {
+      size = value;
+      petEl.style.width = `${BASE_BOX_WIDTH * size}px`;
+      relayout();
     }
 
     setFaces(DEFAULT_FACES);
@@ -147,12 +151,11 @@ const Pet = (() => {
       bodyEl.classList.add('bob');
     }
 
-    // 고개 까딱: 반대쪽으로 천천히 기울며 살짝 올라갔다 내려온다
+    // 고개 까딱: left/right 그림을 바꾸고 살짝 올라갔다 내려온다
     function nod(now) {
       lastNodAt = now;
       nodSide = nodSide === 'left' ? 'right' : 'left';
-      showCurrentFace(); // left/right 그림이 없으면 idle 그림을 더 크게 기울여 대신
-      petEl.dataset.tilt = nodSide;
+      showCurrentFace();
       bob();
     }
 
@@ -170,7 +173,6 @@ const Pet = (() => {
       if (listening === value) return;
       listening = value;
       petEl.classList.toggle('listening', value);
-      delete petEl.dataset.tilt;
       if (value) nod(performance.now()); // 듣기 시작하면 바로 첫 까딱
       else setFace('idle');
     }
@@ -199,6 +201,7 @@ const Pet = (() => {
       update,
       setFaces,
       relayout,
+      setSize,
       setMediaPlaying(value) {
         mediaPlaying = value;
         if (value !== null) setListening(value); // 다음 프레임을 기다리지 않고 바로

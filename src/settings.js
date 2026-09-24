@@ -74,6 +74,23 @@ for (const box of document.querySelectorAll('.face')) {
 window.petAPI.getFaces().then(renderFaces);
 window.petAPI.onFaces(renderFaces);
 
+// ---- 캐릭터 크기 ----
+
+const petSizeInput = document.getElementById('pet-size');
+const petSizeValue = document.getElementById('pet-size-value');
+
+function renderPetSize(size) {
+  petSizeInput.value = Math.round(size * 100);
+  petSizeValue.textContent = `${Math.round(size * 100)}%`;
+}
+
+petSizeInput.addEventListener('input', () => {
+  const size = Number(petSizeInput.value) / 100;
+  renderPetSize(size);
+  window.petAPI.setPetSize(size);
+});
+window.petAPI.getPetSize().then(renderPetSize);
+
 // ---- 배경 ----
 
 window.petAPI.getBackground().then((saved) => {

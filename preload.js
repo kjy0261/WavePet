@@ -20,6 +20,11 @@ contextBridge.exposeInMainWorld('petAPI', {
   setBackground: (bg) => ipcRenderer.send('settings:set-background', bg),
   onBackground: (callback) => ipcRenderer.on('settings:background', (_event, bg) => callback(bg)),
 
+  // 캐릭터 크기 배율 (0.6~1.2)
+  getPetSize: () => ipcRenderer.invoke('settings:get-pet-size'),
+  setPetSize: (size) => ipcRenderer.send('settings:set-pet-size', size),
+  onPetSize: (callback) => ipcRenderer.on('settings:pet-size', (_event, size) => callback(size)),
+
   // 캐릭터 그림 {urls, custom, bounds}: 각각 slot('idle' | 'left' | 'right')별 값.
   // bounds는 그림에서 실제로 그려진 영역 비율 {x0, y0, x1, y1} (없으면 null)
   getFaces: () => ipcRenderer.invoke('pet:get-faces'),

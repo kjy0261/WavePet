@@ -111,24 +111,7 @@ html, body {
   flex: none;
   width: 104px;
   align-self: stretch;
-  transform-origin: 50% 90%; /* 기울기는 발을 축으로 (pet.js가 정확한 위치로 덮어씀) */
-  /* 까딱할 때 천천히 시작해서 천천히 멈추며 넘어가도록 */
-  transition: transform 550ms cubic-bezier(0.45, 0, 0.55, 1);
-  --tilt: 1.5deg; /* left/right 그림이 있을 때: 그림이 기울기를 담당하고 몸은 살짝만 */
   pointer-events: none; /* 투명 여백이 겹친 ••• 버튼 등을 가리지 않게 */
-}
-
-#pet.no-lr {
-  --tilt: 5deg; /* left/right 그림이 없을 때: idle 그림을 기울여 대신 */
-}
-
-/* 고개 까딱: 좌우로 천천히 기울기 (pet.js가 data-tilt를 번갈아 바꿈) */
-#pet[data-tilt='left'] {
-  transform: rotate(calc(var(--tilt) * -1));
-}
-
-#pet[data-tilt='right'] {
-  transform: rotate(var(--tilt));
 }
 
 #pet-body {
@@ -151,7 +134,7 @@ html, body {
   opacity: 1;
 }
 
-/* 까딱하며 기울어지는 동안 살짝 올라갔다 부드럽게 내려오기 */
+/* 까딱할 때(left/right 그림이 바뀔 때) 살짝 올라갔다 부드럽게 내려오기 */
 @keyframes pet-bob {
   0% { transform: translateY(0) scale(1, 1); }
   40% { transform: translateY(-2.5%) scale(0.995, 1.01); }

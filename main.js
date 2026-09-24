@@ -374,6 +374,23 @@ function currentBackground() {
 }
 
 ipcMain.handle('settings:get-background', () => currentBackground());
+
+// 캐릭터 크기 배율 (설정 창 슬라이더, 60~120%)
+const DEFAULT_PET_SIZE = 1;
+const PET_SIZE_RANGE = [0.6, 1.2];
+
+function currentPetSize() {
+  const size = Number(settings.petSize);
+  return Number.isFinite(size) ? Math.min(PET_SIZE_RANGE[1], Math.max(PET_SIZE_RANGE[0], size)) : DEFAULT_PET_SIZE;
+}
+
+ipcMain.handle('settings:get-pet-size', () => currentPetSize());
+ipcMain.on('settings:set-pet-size', (event, value) => {
+  if (!Number.isFinite(Number(value))) return;
+  settings.petSize = Number(value);
+  saveSettingsSoon();
+  sendToRenderer('settings:pet-size', currentPetSize());
+});
 ipcMain.on('settings:set-background', (event, bg) => {
   const clean = sanitizeBackground(bg);
   if (!clean) return;
@@ -391,8 +408,8 @@ function openSettingsWindow() {
   }
   settingsWindow = new BrowserWindow({
     width: 380,
-    height: 590,
-    useContentSize: true, // 창 테두리/제목줄을 뺀 안쪽 크기 (설정 내용 약 380×575px)
+    height: 648,
+    useContentSize: true, // 창 테두리/제목줄을 뺀 안쪽 크기 (설정 내용 약 380×635px)
     title: 'WavePet 설정',
     resizable: false,
     minimizable: false,

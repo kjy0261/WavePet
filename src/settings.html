@@ -125,6 +125,12 @@
     }
     .face button:hover { background: #3a4150; }
     .face button:disabled { opacity: 0.4; cursor: default; }
+    .size-row { margin: 14px 0 0; }
+    #pet-size-value {
+      font-variant-numeric: tabular-nums;
+      color: #c3c9d4;
+      min-width: 44px;
+    }
     .hint { margin-top: 8px; font-size: 11px; color: #8a93a3; line-height: 1.5; }
   </style>
 </head>
@@ -133,7 +139,7 @@
   <div id="faces">
     <div class="face" data-slot="idle">
       <span class="face-label">노래 안 들을 때</span>
-      <div class="preview"><img alt="노래 안 들을 때 이미지" /><span class="none">없음<br />기울여 대신</span></div>
+      <div class="preview"><img alt="노래 안 들을 때 이미지" /><span class="none">없음</span></div>
       <div class="buttons">
         <button class="pick">바꾸기</button>
         <button class="reset">기본</button>
@@ -141,7 +147,7 @@
     </div>
     <div class="face" data-slot="left">
       <span class="face-label">들을 때 · 왼쪽</span>
-      <div class="preview"><img alt="들을 때 왼쪽 이미지" /><span class="none">없음<br />기울여 대신</span></div>
+      <div class="preview"><img alt="들을 때 왼쪽 이미지" /><span class="none">없음</span></div>
       <div class="buttons">
         <button class="pick">바꾸기</button>
         <button class="reset">기본</button>
@@ -149,14 +155,21 @@
     </div>
     <div class="face" data-slot="right">
       <span class="face-label">들을 때 · 오른쪽</span>
-      <div class="preview"><img alt="들을 때 오른쪽 이미지" /><span class="none">없음<br />기울여 대신</span></div>
+      <div class="preview"><img alt="들을 때 오른쪽 이미지" /><span class="none">없음</span></div>
       <div class="buttons">
         <button class="pick">바꾸기</button>
         <button class="reset">기본</button>
       </div>
     </div>
   </div>
-  <div class="hint">노래를 들을 때는 '왼쪽'과 '오른쪽' 그림을 번갈아 보여 주며 고개를 까딱입니다. 그림이 없으면 '노래 안 들을 때' 그림을 기울여 대신합니다.<br />투명 배경 PNG, 정사각형(512×512 권장)에 모든 그림의 캐릭터 위치를 똑같이 맞추면 자연스럽습니다.</div>
+  <section class="size-row">
+    <h2>캐릭터 크기</h2>
+    <div class="row">
+      <input id="pet-size" type="range" min="60" max="120" step="5" />
+      <span id="pet-size-value"></span>
+    </div>
+  </section>
+  <div class="hint">노래를 들을 때는 '왼쪽'과 '오른쪽' 그림을 번갈아 보여 주며 고개를 까딱입니다.<br />투명 배경 PNG, 정사각형(512×512 권장)에 모든 그림의 캐릭터 위치를 똑같이 맞추면 자연스럽습니다.</div>
 
   <hr />
   <h1>배경</h1>

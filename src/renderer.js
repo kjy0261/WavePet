@@ -34,6 +34,8 @@ $('more').addEventListener('click', () => window.petAPI.showContextMenu());
 window.petAPI.getFaces().then(({ urls, bounds }) => pet.setFaces(urls, bounds));
 window.petAPI.onFaces(({ urls, bounds }) => pet.setFaces(urls, bounds));
 window.addEventListener('resize', () => pet.relayout());
+window.petAPI.getPetSize().then((size) => pet.setSize(size));
+window.petAPI.onPetSize((size) => pet.setSize(size));
 
 // 배경 색/투명도 (우클릭 메뉴 → 설정...)
 const applyBackground = (bg) => visualizer.setColor(Theme.apply(bg));
